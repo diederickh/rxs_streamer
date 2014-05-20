@@ -1,0 +1,81 @@
+cmake_minimum_required(VERSION 2.8)
+
+include(${CMAKE_CURRENT_LIST_DIR}/Triplet.cmake)
+
+set(app app)
+set(sd ${CMAKE_CURRENT_LIST_DIR}/../src/)
+
+if(CMAKE_BUILD_TYPE STREQUAL Debug)
+  set(app "${app}_debug")
+endif()
+
+include_directories(
+  ${CMAKE_CURRENT_LIST_DIR}/../src
+  ${CMAKE_CURRENT_LIST_DIR}/../include
+  ${extern_include_dir}
+  ${CMAKE_CURRENT_LIST_DIR}/../extern/tinylib/src
+)
+
+set(rxs_streamer_sources
+  ${sd}/rxs_streamer/rxs_generator.c
+  ${sd}/rxs_streamer/rxs_encoder.c
+  ${sd}/rxs_streamer/rxs_decoder.c
+  ${sd}/rxs_streamer/rxs_packetizer.c
+  ${sd}/rxs_streamer/rxs_depacketizer.c
+  ${sd}/rxs_streamer/rxs_sender.c
+  ${sd}/rxs_streamer/rxs_receiver.c
+  ${sd}/rxs_streamer/rxs_ivf.c
+)
+
+if(UNIX AND NOT APPLE)
+  list(APPEND app_sources ${extern_source_dir}/GLXW/glxw.c)
+  message(STATUS "Adding glxw.c for GL-function loading.")
+  message(${app_sources})
+endif()
+
+if(APPLE)
+
+  find_library(fr_corefoundation CoreFoundation)
+  find_library(fr_cocoa Cocoa)
+  find_library(fr_opengl OpenGL)
+  find_library(fr_iokit IOKit)
+  find_library(fr_corevideo CoreVideo)
+  find_library(fr_opencl OpenCL)
+  find_library(fr_audio AudioUnit)
+  find_library(fr_caudio CoreAudio)
+  find_library(fr_audio_toolbox AudioToolbox)
+
+  set(app_libs
+    ${extern_lib_dir}/libvpx.a
+    ${extern_lib_dir}/libuv.a
+    ${extern_lib_dir}/libpng.a
+    ${extern_lib_dir}/libz.a
+    ${extern_lib_dir}/libglfw3.a
+    ${fr_corefoundation}  # uv
+    ${fr_cocoa}           # uv
+    ${fr_iokit}           # uv
+    ${fr_opengl}          # glfw
+    ${fr_corevideo}       # glfw
+    )
+
+endif()
+
+add_library(rxs_streamer ${rxs_streamer_sources})
+install(TARGETS rxs_streamer ARCHIVE DESTINATION lib)
+
+add_executable(test_vpx ${sd}/examples/test_vpx.c)
+target_link_libraries(test_vpx rxs_streamer ${app_libs})
+install(TARGETS test_vpx DESTINATION bin)
+
+add_executable(test_glfw_player ${sd}/examples/test_glfw_player.cpp)
+target_link_libraries(test_glfw_player rxs_streamer ${app_libs})
+install(TARGETS test_glfw_player DESTINATION bin)
+
+
+
+
+
+
+
+
+
