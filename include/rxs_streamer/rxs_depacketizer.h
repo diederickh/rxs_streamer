@@ -36,10 +36,12 @@ struct rxs_depacketizer {
   uint16_t PictureID;                    /* 8 or 16 bits, picture ID */
   uint8_t TL0PICIDX;                    /* 8 bits temporal level zero index */
 
+  /* state, internal */
   int64_t len;                          /* number of bytes left in buf */
   uint32_t pos;                         /* number of bytes in `rxs_depacketizer.buffer` */
   uint8_t* buf;                         /* current read pointer */
   uint8_t buffer[RXS_MAX_FRAME_SIZE];
+  uint8_t received_keyframe;            /* is set to 1 when we received a keyframe. only when we received a keyframe we will start calling the on_frame callback */
 
   /* callback */
   void* user;

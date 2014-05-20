@@ -18,6 +18,7 @@ int rxs_depacketizer_init(rxs_depacketizer* dep) {
   if (!dep) { return -1; } 
 
   dep->pos = 0;
+  dep->received_keyframe = 0;
 
   return rxs_depacketizer_reset(dep);
 }
@@ -65,7 +66,6 @@ int rxs_depacketizer_unwrap(rxs_depacketizer* dep, uint8_t* buffer, int64_t nbyt
     return -4;
   }
 
-  printf("Received; %lld\n", nbytes);
   dep->len = nbytes;
   dep->buf = buffer;
 
@@ -197,15 +197,18 @@ int depacketizer_unwrap_vp8(rxs_depacketizer* dep) {
 
   if(dep->S == 1 && dep->PID == 0) {
     if((dep->buf[0] & 0x01) == 0) {
-      printf("+ We received a keyframe.\n");
+      //printf("+ We received a keyframe.\n");
       //  exit(0);
     }
   }
 
+  if (dep->received_keyframe == 0 && dep->N == 0) {
+    dep->received_keyframe = 1;
+  }
 
-#if 0
+#if 1
   printf(" X: %d, N: %d, S: %d, PID: %d "
-         "I: %d, L: %d, T: %d, K: %d, PictureID: %d\n", 
+         "I: %d, L: %d, T: %d, K: %d, PictureID: %d, seqnum: %d\n", 
          dep->X,
          dep->N,
          dep->S,
@@ -214,7 +217,8 @@ int depacketizer_unwrap_vp8(rxs_depacketizer* dep) {
          dep->L,
          dep->T,
          dep->K,
-         dep->PictureID
+         dep->PictureID,
+         dep->seqnum
   );
 #endif
 
@@ -225,8 +229,12 @@ int depacketizer_unwrap_vp8(rxs_depacketizer* dep) {
   }
 
   if (dep->marker == 1) {
-    printf("Decoded frame size: %u\n", dep->pos);
-    dep->on_frame(dep, dep->buffer, dep->pos);
+    if (dep->received_keyframe) {
+      dep->on_frame(dep, dep->buffer, dep->pos);
+    }
+    else {
+      printf("Skipping data.\n");
+    }
     dep->pos = 0;
   }
 
