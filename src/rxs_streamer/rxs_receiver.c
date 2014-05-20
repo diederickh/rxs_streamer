@@ -23,6 +23,7 @@ int rxs_receiver_init(rxs_receiver* rec, int port) {
   }
 
   /* create sockaddr */
+  //r = uv_ip4_addr("0.0.0.0", port, &rec->saddr);
   r = uv_ip4_addr("0.0.0.0", port, &rec->saddr);
   if (r != 0) {
     printf("Error: cannot init the sock struct.\n");
