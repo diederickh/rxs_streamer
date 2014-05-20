@@ -5,10 +5,13 @@
 
 int rxs_decoder_init(rxs_decoder* dec) {
 
+  vpx_codec_err_t err;
+
   if (!dec) { return -1; } 
 
-  if (vpx_codec_dec_init(&dec->ctx, vpx_dx_interface, NULL, 0)) {
-    printf("Error: cannot initialize the decoder.\n");
+  err = vpx_codec_dec_init(&dec->ctx, vpx_dx_interface, NULL, 0);
+  if (err) {
+    printf("Error: cannot initialize the decoder: %s.\n", vpx_codec_err_to_string(err));
     return -2; 
   }
 
@@ -20,6 +23,7 @@ int rxs_decoder_init(rxs_decoder* dec) {
 int rxs_decoder_decode(rxs_decoder* dec, uint8_t* buffer, uint32_t nbytes) {
 
   vpx_codec_iter_t iter = NULL;
+  vpx_codec_err_t err;
 
   if (!dec) { return -1; } 
   if (!buffer) { return -2; } 
@@ -27,8 +31,10 @@ int rxs_decoder_decode(rxs_decoder* dec, uint8_t* buffer, uint32_t nbytes) {
 
   dec->img = NULL;
 
-  if (vpx_codec_decode(&dec->ctx, buffer, nbytes, NULL, 0)) {
-    printf("Error: cannot decode buffer.\n");
+  err = vpx_codec_decode(&dec->ctx, buffer, nbytes, NULL, 0);
+  if (err) {
+    printf("Error: cannot decode buffer: %s\n", vpx_codec_err_to_string(err));
+    return -4;
   }
 
   while ( (dec->img = vpx_codec_get_frame(&dec->ctx, &iter)) ) {

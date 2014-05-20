@@ -7,5 +7,10 @@ fi
 cd build.debug
 cmake -DCMAKE_BUILD_TYPE=Debug ../ 
 cmake --build . --target install
-cd ./../../install/mac-clang-x86_64/bin/
-lldb ./app_debug
+if [ "$(uname)" == "Darwin" ] ; then 
+    cd ./../../install/mac-clang-x86_64/bin/
+    lldb ./app_debug  
+else
+    cd ./../../install/linux-gcc-x86_64/bin/
+    gdb ./test_glfw_player
+fi

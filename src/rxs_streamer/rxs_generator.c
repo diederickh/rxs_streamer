@@ -19,6 +19,7 @@ int rxs_generator_init(rxs_generator* g, int w, int h, int fps) {
   int i = 0;
   int dx = 0;
   int max_els = RXS_MAX_CHARS * 8; /* members per char */
+  rxs_generator_char* c = NULL;
 
   if (!g) { return -1; } 
   if (!w) { return -2; } 
@@ -46,7 +47,7 @@ int rxs_generator_init(rxs_generator* g, int w, int h, int fps) {
 
   /* initialize the characters */
   while (i < max_els) {
-    rxs_generator_char* c = &g->chars[dx];
+    c = &g->chars[dx];
     c->id = numbersfont_char_data[i++];
     c->x = numbersfont_char_data[i++];
     c->y = numbersfont_char_data[i++];
@@ -76,16 +77,6 @@ int rxs_generator_clear(rxs_generator* g) {
     free(g->y);
   }
 
-#if 0
-  if (g->u) {
-    free(g->u);
-  }
-
-  if (g->v) {
-    free(g->u);
-  }
-#endif 
-
   g->y = NULL;
   g->u = NULL;
   g->u = NULL;
@@ -107,10 +98,21 @@ int rxs_generator_clear(rxs_generator* g) {
 int rxs_generator_update(rxs_generator* g) {
 
   double perc;
-  int text_w, text_x, text_y;
+  int text_w, text_x, text_y, i;
   int32_t bar_h, time, speed, start_y, nlines, h;
   uint64_t days, hours, minutes, seconds;
+  uint32_t stride, end_y;
   char timebuf[512] = { 0 } ;
+  int rc, gc, bc, yc, uc, vc, dx;
+  int colors[] = { 
+    255, 255, 255,  // white
+    255, 255, 0,    // yellow
+    0,   255, 255,  // cyan
+    0,   255, 0,    // green
+    255, 0,   255,  // magenta
+    255, 0,   0,    // red
+    0,   0,   255   // blue
+  };
 
   if (!g) { return -1; } 
   if (!g->width) { return -2; } 
@@ -144,23 +146,11 @@ int rxs_generator_update(rxs_generator* g) {
   }
 
   /* reset */
-  int rc, gc, bc, yc, uc, vc, dx;
-
   memset(g->y, 0x00, g->ybytes);
   memset(g->u, 0x00, g->ubytes);
   memset(g->v, 0x00, g->vbytes);
 
-  int colors[] = { 
-    255, 255, 255,  // white
-    255, 255, 0,    // yellow
-    0,   255, 255,  // cyan
-    0,   255, 0,    // green
-    255, 0,   255,  // magenta
-    255, 0,   0,    // red
-    0,   0,   255   // blue
-  };
-
-  for (int i = 0; i < 7; ++i) {
+  for (i = 0; i < 7; ++i) {
     dx = i * 3;
     rc = colors[dx + 0];
     gc = colors[dx + 1];
@@ -176,17 +166,16 @@ int rxs_generator_update(rxs_generator* g) {
   vc = RGB2V(rc, gc, bc);
 
   /* fill y channel */
-  for (int i = start_y; i < (start_y + nlines); ++i) {
+  for (i = start_y; i < (start_y + nlines); ++i) {
     memset(g->y + (i * g->width), yc, g->width);
   }
   
   /* fill u and v channel */
-  uint32_t stride, end_y;
   start_y = start_y / 2;
   stride = g->width * 0.5;
   end_y = start_y + nlines/ 2;
 
-  for (int i = start_y; i < end_y; ++i) {
+  for (i = start_y; i < end_y; ++i) {
     memset(g->u + i * stride, uc, stride);
     memset(g->v + i * stride, vc, stride);
   }
@@ -213,16 +202,13 @@ int rxs_generator_update(rxs_generator* g) {
 
 static int fill(rxs_generator* gen, int x, int y, int w, int h, int r, int g, int b) {
 
+  // Y 
   int yc = RGB2Y(r,g,b);
   int uc = RGB2U(r,g,b);
   int vc = RGB2V(r,g,b);
+  int j = 0;
 
-  // y 
-  for (int j = y; j < (y + h); ++j) {
-    memset(gen->y + j * gen->width + x, yc, w);
-  }
-
-  // u and v 
+  // UV
   int xx = x / 2;
   int yy = y / 2;
   int half_w = gen->width / 2;
@@ -230,7 +216,13 @@ static int fill(rxs_generator* gen, int x, int y, int w, int h, int r, int g, in
   int hh = h / 2;
   int ww = w / 2;
 
-  for (int j = yy; j < (yy + hh); ++j) {
+  // y 
+  for (j = y; j < (y + h); ++j) {
+    memset(gen->y + j * gen->width + x, yc, w);
+  }
+
+  // u and v 
+  for (j = yy; j < (yy + hh); ++j) {
     memset(gen->u + j * half_w + xx, uc, (ww));
     memset(gen->v + j * half_w + xx, vc, (ww));
   }

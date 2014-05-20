@@ -82,5 +82,4 @@ static void send_cb(uv_udp_send_t* req, int status) {
 
   free(req);
   req = NULL;
-
 }
