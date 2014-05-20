@@ -52,8 +52,9 @@ int rxs_encoder_init(rxs_encoder* enc, rxs_encoder_config* cfg) {
 #endif
 
   /* init codec */
-  if (vpx_codec_enc_init(&enc->ctx, vpx_cx_interface, &enc->cfg, flags)) {
-    printf("Error: could not initialize the vpx encoder.\n");
+  err = vpx_codec_enc_init(&enc->ctx, vpx_cx_interface, &enc->cfg, flags);
+  if (err) {
+    printf("Error: could not initialize the vpx encoder: %s\n", vpx_codec_err_to_string(err));
     return -6;
   }
 

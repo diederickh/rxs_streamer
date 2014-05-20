@@ -58,16 +58,40 @@ if(APPLE)
     ${fr_corevideo}       # glfw
     )
 
+elseif(UNIX)
+
+  set(debug_flag "")
+
+  if(CMAKE_BUILD_TYPE STREQUAL Debug)
+    set(debug_flag "d")
+  endif()
+
+  set(app_libs
+    ${extern_lib_dir}/libvpx${debug_flag}.a
+    ${extern_lib_dir}/libglfw3.a
+    ${extern_lib_dir}/libuv.a
+    ${extern_lib_dir}/libpng.a
+    GL
+    X11
+    Xxf86vm
+    Xrandr
+    pthread
+    dl
+    Xi
+    asound
+    z
+    m
+    )
 endif()
 
 add_library(rxs_streamer ${rxs_streamer_sources})
 install(TARGETS rxs_streamer ARCHIVE DESTINATION lib)
 
-add_executable(test_vpx ${sd}/examples/test_vpx.c)
+add_executable(test_vpx ${sd}/examples/test_vpx.c ${app_sources})
 target_link_libraries(test_vpx rxs_streamer ${app_libs})
 install(TARGETS test_vpx DESTINATION bin)
 
-add_executable(test_glfw_player ${sd}/examples/test_glfw_player.cpp)
+add_executable(test_glfw_player ${sd}/examples/test_glfw_player.cpp ${app_sources})
 target_link_libraries(test_glfw_player rxs_streamer ${app_libs})
 install(TARGETS test_glfw_player DESTINATION bin)
 

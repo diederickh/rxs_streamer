@@ -119,7 +119,8 @@ int main() {
   }
 
   /* networking */
-  if (rxs_sender_init(&sender, "127.0.0.1", 6970) < 0) {
+  if (rxs_sender_init(&sender, "0.0.0.0", 6970) < 0) {
+    // if (rxs_sender_init(&sender, "192.168.0.194", 6970) < 0) {
     printf("Error: cannot initialize networking.\n");
     exit(1);
   }
