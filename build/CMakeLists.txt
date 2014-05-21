@@ -25,6 +25,7 @@ set(rxs_streamer_sources
   ${sd}/rxs_streamer/rxs_sender.c
   ${sd}/rxs_streamer/rxs_receiver.c
   ${sd}/rxs_streamer/rxs_ivf.c
+  ${sd}/rxs_streamer/rxs_packets.c
 )
 
 if(UNIX AND NOT APPLE)
@@ -84,16 +85,24 @@ elseif(UNIX)
     )
 endif()
 
+# rxs_streamer library
 add_library(rxs_streamer ${rxs_streamer_sources})
 install(TARGETS rxs_streamer ARCHIVE DESTINATION lib)
 
+# test vpx sender
 add_executable(test_vpx ${sd}/examples/test_vpx.c ${app_sources})
 target_link_libraries(test_vpx rxs_streamer ${app_libs})
 install(TARGETS test_vpx DESTINATION bin)
 
+# test_glfw_player
 add_executable(test_glfw_player ${sd}/examples/test_glfw_player.cpp ${app_sources})
 target_link_libraries(test_glfw_player rxs_streamer ${app_libs})
 install(TARGETS test_glfw_player DESTINATION bin)
+
+# test_packets
+add_executable(test_packets ${sd}/examples/test_packets.c ${app_sources})
+target_link_libraries(test_packets rxs_streamer ${app_libs})
+install(TARGETS test_packets DESTINATION bin)
 
 
 

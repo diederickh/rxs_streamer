@@ -15,4 +15,5 @@ else
 fi
 
 #./test_vpx
-./test_glfw_player
+#./test_glfw_player
+./test_packets
