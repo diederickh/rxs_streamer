@@ -5,7 +5,7 @@
 
 /* ----------------------------------------------------------------------------- */
 
-
+static int packets_sort_seqnum(const void* a, const void* b);
 
 /* ----------------------------------------------------------------------------- */
 
@@ -16,6 +16,7 @@ int rxs_packet_init(rxs_packet* pkt) {
   pkt->data = NULL;
   pkt->nbytes = 0;
   pkt->capacity = 0;
+  pkt->marker = 0;
 
   return 0;
 }
@@ -28,6 +29,7 @@ int rxs_packet_clear(rxs_packet* pkt) {
   pkt->nbytes = 0;
   pkt->capacity = 0;
   pkt->seqnum = 0;
+  pkt->marker = 0;
   pkt->timestamp = 0;
 
   return 0;
@@ -128,4 +130,35 @@ rxs_packet* rxs_packets_find_free(rxs_packets* ps) {
   return NULL;
 }
 
+int rxs_packets_sort_seqnum(rxs_packets* ps) {
+  if (!ps) { return -1; } 
+  
+  qsort(ps->packets, ps->npackets, sizeof(rxs_packet), packets_sort_seqnum) ;
+
+  return 0;
+}
+
 /* ----------------------------------------------------------------------------- */
+
+static int packets_sort_seqnum(const void* a, const void* b) {
+
+  const rxs_packet* aa = (const rxs_packet*)a;
+  const rxs_packet* bb = (const rxs_packet*)b;
+
+#if !defined(NDEBUG)
+  /* sequence numbers are supposed to increase! */
+  if (aa->seqnum == bb->seqnum) {
+    return 0;
+  }
+#endif
+
+  if (aa->seqnum > bb->seqnum) {
+    return 1;
+  }
+  else {
+    return -1;
+  }
+
+
+
+}

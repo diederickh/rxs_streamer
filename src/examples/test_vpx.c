@@ -27,6 +27,7 @@
 #include <rxs_streamer/rxs_receiver.h>
 
 #define USE_RECEIVER 0
+#define USE_DROPPING 1  /* when set to 1 we will fake dropping of frames every N-th frame. */
 #define WRITE_IVF 0 /* when set to 1, we will write the depacketized rtp stream into a .ivf file */
 #define WIDTH 640
 #define HEIGHT 480
@@ -48,7 +49,7 @@ uint64_t frame_delay = 0;
 static void sigh(int sn);
 static void on_vp8_packet(rxs_encoder* enc, const vpx_codec_cx_pkt_t* pkt, int64_t pts);
 static void on_rtp_packet(rxs_packetizer* vpx, uint8_t* buffer, uint32_t nbytes);
-static void on_vp8_frame(rxs_depacketizer* dep, uint8_t* buffer, uint32_t nbytes);   /* gets called when we've collected a complete frame from the packetized rtp vp8 stream */
+static void on_vp8_depacket(rxs_depacketizer* dep, uint8_t* buffer, uint32_t nbytes);   /* gets called when we've collected a complete frame from the packetized rtp vp8 stream */
 static void on_data(rxs_receiver* rec, uint8_t* buffer, uint32_t nbytes);
 
 int main() {
@@ -109,7 +110,7 @@ int main() {
     exit(1);
   }
 
-  depack.on_frame = on_vp8_frame;
+  depack.on_packet = on_vp8_depacket;
 
   /* generator */
   rxs_generator gen;
@@ -188,13 +189,21 @@ static void on_rtp_packet(rxs_packetizer* vpx, uint8_t* buffer, uint32_t nbytes)
   }
 }
 
-static void on_vp8_frame(rxs_depacketizer* dep, uint8_t* buffer, uint32_t nbytes) {
+static void on_vp8_depacket(rxs_depacketizer* dep, uint8_t* buffer, uint32_t nbytes) {
 
+  /* @todo: the depacketizer doesn't implement any logic anymore and 
+            because you can only call the decoder after you've received
+            a complete packet (marker = 1) and when it's a keyframe
+            we need to add some logic here .... or somewhere else 
+  */
+            
+  /* 
   rxs_decoder_decode(&decoder, buffer, nbytes);
   
 #if WRITE_IVF
   rxs_ivf_write_frame(&ivf, dep->timestamp / 90, buffer, nbytes);
 #endif
+  */
 }
 
 static void on_data(rxs_receiver* rec, uint8_t* buffer, uint32_t nbytes) {

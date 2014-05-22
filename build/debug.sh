@@ -12,5 +12,6 @@ if [ "$(uname)" == "Darwin" ] ; then
     lldb ./app_debug  
 else
     cd ./../../install/linux-gcc-x86_64/bin/
-    gdb ./test_glfw_player
+    #gdb ./test_glfw_player
+    gdb ./test_jitter
 fi

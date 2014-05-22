@@ -89,9 +89,10 @@ typedef struct rxs_packet rxs_packet;
 typedef struct rxs_packets rxs_packets;
 
 struct rxs_packet {
+  uint8_t marker;        /* copy of the the RTP m flag */
   uint32_t timestamp;    /* can be used by user to playback */
   uint32_t seqnum;       /* sequence number that can be used to detect dropped or out-of-order packets */
-  int is_free;           /* indicates if this packet is still free and can be used to write some data into */
+  uint8_t is_free;       /* indicates if this packet is still free and can be used to write some data into */
   uint8_t* data;         /* the actual packet data; can be e.g. a raw RTP packet, or a raw VP8 frame */
   uint32_t nbytes;       /* number of bytes written into data, can't be more then capacity */
   uint32_t capacity;     /* capacity that you can write into this packet. same as nframebytes when initialising with rxs_packets_init() */
@@ -109,6 +110,7 @@ int rxs_packet_clear(rxs_packet* pkt);                                          
 int rxs_packet_write(rxs_packet* pkt, uint8_t* data, uint32_t nbytes);                      /* write the given data into the ringbuffer and set the members of rxs_packet */
 int rxs_packets_init(rxs_packets* ps, int num, uint32_t nframebytes);                       /* initialize all the packets */
 int rxs_packets_clear(rxs_packets* ps);                                                     /* clears/resets the packets */
+int rxs_packets_sort_seqnum(rxs_packets* ps);                                               /* sort on seq num */
 
 rxs_packet* rxs_packets_find_free(rxs_packets* ps);
 

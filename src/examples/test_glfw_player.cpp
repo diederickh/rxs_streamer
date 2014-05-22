@@ -42,7 +42,7 @@ rxs_depacketizer depack;
 rxs_receiver rec;
 
 static int init_player();
-static void on_vp8_frame(rxs_depacketizer* dep, uint8_t* buffer, uint32_t nbytes);
+static void on_vp8_packet(rxs_depacketizer* dep, uint8_t* buffer, uint32_t nbytes);
 static void on_vp8_image(rxs_decoder* dec, vpx_image_t* img);
 static void on_data(rxs_receiver* rec, uint8_t* buffer, uint32_t nbytes);
 
@@ -304,13 +304,17 @@ static int init_player() {
   if (rxs_receiver_init(&rec, 6970) < 0) { return -3; } 
 
   rec.on_data = on_data;
-  depack.on_frame = on_vp8_frame;
+  depack.on_packet = on_vp8_packet;
   decoder.on_image = on_vp8_image;
   return 0;
 }
 
-static void on_vp8_frame(rxs_depacketizer* dep, uint8_t* buffer, uint32_t nbytes) {
-  rxs_decoder_decode(&decoder, buffer, nbytes);
+static void on_vp8_packet(rxs_depacketizer* dep, uint8_t* buffer, uint32_t nbytes) {
+  /* @todo - we need to implement some logic in the on_vp8_packet function
+             we can only pass packets to the vp8 decoder after/when we receive
+             a keyframe else libvpx causes the app to crash on linux. 
+  */
+  //rxs_decoder_decode(&decoder, buffer, nbytes);
 }
 
 static void on_data(rxs_receiver* rec, uint8_t* buffer, uint32_t nbytes) {

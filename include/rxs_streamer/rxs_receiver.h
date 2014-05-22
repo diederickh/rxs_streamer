@@ -5,6 +5,26 @@
 
    Used to receive UDP RTP packets that contain VP8. 
 
+   <example>
+
+      rxs_receiver rec;   
+      static void on_data(rxs_receiver* rec, uint8_t* buf, uint32_t nbytes);
+      
+      int main() { 
+      
+        rxs_receiver_init(&rec, 6790);
+      
+        rec.on_data = on_data;
+      
+        while(1) {
+           rxs_receiver_update(&rec);
+        }
+      }
+      
+      static void on_data(rxs_receiver* rec, uint8_t* buf, uint32_t nbytes) {
+      }
+   </example>
+
  */
 #ifndef RXS_RECEIVER_H
 #define RXS_RECEIVER_H

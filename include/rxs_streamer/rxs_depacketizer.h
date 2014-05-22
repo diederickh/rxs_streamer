@@ -45,11 +45,13 @@ struct rxs_depacketizer {
 
   /* callback */
   void* user;
-  rxs_depacketizer_callback on_frame;  /* gets called when we've decoded/extracted an complete frame from the stream */
+  // rxs_depacketizer_callback on_frame;  /* gets called when we've decoded/extracted an complete frame from the stream */
+  rxs_depacketizer_callback on_packet;  /* gets called when we've decoded a rtp vp8 packet */
 };
 
 int rxs_depacketizer_init(rxs_depacketizer* dep);
 int rxs_depacketizer_reset(rxs_depacketizer* dep); /* just resets the members */
 int rxs_depacketizer_unwrap(rxs_depacketizer* dep, uint8_t* buffer, int64_t nbytes);
+void rxs_depacketizer_print(rxs_depacketizer* dep);
 
 #endif

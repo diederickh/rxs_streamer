@@ -90,23 +90,7 @@ int rxs_packetizer_wrap(rxs_packetizer* vpx, const vpx_codec_cx_pkt_t* pkt) {
       return -4;
     }
 
-#if 1
-    printf("#%d %u - V: %d, P: %d, X: %d, C: %d, M: %d, PT: %d, X: %d, N: %d, S: %d, PID: %d, bytes: %lld\n",
-           vpx->seqnum,
-           vpx->timestamp,
-           vpx->version,
-           vpx->padding,
-           0,
-           0,
-           vpx->marker,
-           vpx->payload_type,
-           0,
-           0,
-           vpx->pstart,
-           pkt->data.frame.partition_id,
-           vpx->frame_size
-    );
-#endif
+    rxs_packetizer_print(vpx);
 
     /* tell the user that we have some data to be written */
     vpx->on_packet(vpx, vpx->buffer, vpx->dx);
@@ -128,6 +112,26 @@ int rxs_packetizer_wrap(rxs_packetizer* vpx, const vpx_codec_cx_pkt_t* pkt) {
   return 0;
 }
 
+void rxs_packetizer_print(rxs_packetizer* vpx) {
+  if (!vpx) { return ; } 
+
+  printf("#%d %u - V: %d, P: %d, X: %d, C: %d, M: %d, PT: %d, X: %d, N: %d, S: %d, PID: %d, bytes: %lld\n",
+         vpx->seqnum,
+         vpx->timestamp,
+         vpx->version,
+         vpx->padding,
+         0,
+         0,
+         vpx->marker,
+         vpx->payload_type,
+         0,
+         0,
+         vpx->pstart,
+         vpx->pid,
+         vpx->frame_size
+  );
+  
+}
 
 /* ----------------------------------------------------------------------------- */
 

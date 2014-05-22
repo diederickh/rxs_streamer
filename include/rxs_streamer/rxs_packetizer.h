@@ -46,5 +46,6 @@ struct rxs_packetizer {
 int rxs_packetizer_init(rxs_packetizer* vpx);
 int rxs_packetizer_wrap(rxs_packetizer* vpx, const vpx_codec_cx_pkt_t* pkt);
 int rxs_packetizer_reset(rxs_packetizer* vpx);  /* resets all members to defaults, but not the one which needs to be set (like ssrc)*/
+void rxs_packetizer_print(rxs_packetizer* vpx); /* print some debug info */
 
 #endif

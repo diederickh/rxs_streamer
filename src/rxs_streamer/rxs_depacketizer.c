@@ -206,7 +206,48 @@ int depacketizer_unwrap_vp8(rxs_depacketizer* dep) {
     dep->received_keyframe = 1;
   }
 
-#if 1
+  // rxs_depacketizer_print(dep);
+
+  if (dep->len > 0) {
+    /* @todo check out of range */
+    memcpy(dep->buffer + dep->pos, dep->buf, dep->len);
+    dep->pos += dep->len;
+  }
+
+  /* @todo:  we added a received_keyframe flag becuase libvpx crashes
+             on linux when you give it any data before a first keyframe.
+             though this kind of logic should be handled by the user, 
+             not in here. 
+  */
+
+  if (dep->on_packet) {
+    dep->on_packet(dep, dep->buffer, dep->pos);
+  }
+  
+            
+  /*
+  if (dep->marker == 1) {
+    if (dep->received_keyframe) {
+      dep->on_frame(dep, dep->buffer, dep->pos);
+    }
+    else {
+      printf("Skipping data.\n");
+    }
+    dep->pos = 0;
+  }
+  */
+
+  if (dep->marker == 1) {
+    dep->pos = 0;
+  }
+
+
+  return 0;
+}
+
+void rxs_depacketizer_print(rxs_depacketizer* dep) {
+  if (!dep) { return ; } 
+
   printf(" X: %d, N: %d, S: %d, PID: %d "
          "I: %d, L: %d, T: %d, K: %d, PictureID: %d, seqnum: %d\n", 
          dep->X,
@@ -220,25 +261,6 @@ int depacketizer_unwrap_vp8(rxs_depacketizer* dep) {
          dep->PictureID,
          dep->seqnum
   );
-#endif
-
-  if (dep->len > 0) {
-    /* @todo check out of range */
-    memcpy(dep->buffer + dep->pos, dep->buf, dep->len);
-    dep->pos += dep->len;
-  }
-
-  if (dep->marker == 1) {
-    if (dep->received_keyframe) {
-      dep->on_frame(dep, dep->buffer, dep->pos);
-    }
-    else {
-      printf("Skipping data.\n");
-    }
-    dep->pos = 0;
-  }
-
-  return 0;
 }
 
 /* @todo - verify if the picture id reading is correct 
