@@ -1,3 +1,14 @@
+/*
+
+  rxs_depacketizer
+  -----------------
+
+  rxs_depacketizer unwraps RTP VP8 packets and calls the set on_packet
+  function after it parsed a RTP packet correctly. Note that one frame can 
+  be split over multiple packets. Therefore you need to collect the data
+  until the marker bit has been set to 1 (see the RTP RFC and e.g. test_vpx).
+
+ */
 #ifndef RXS_DEPACKETIZER_H
 #define RXS_DEPACKETIZER_H
 
@@ -45,7 +56,6 @@ struct rxs_depacketizer {
 
   /* callback */
   void* user;
-  // rxs_depacketizer_callback on_frame;  /* gets called when we've decoded/extracted an complete frame from the stream */
   rxs_depacketizer_callback on_packet;  /* gets called when we've decoded a rtp vp8 packet */
 };
 

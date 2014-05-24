@@ -42,7 +42,7 @@ int rxs_packet_write(rxs_packet* pkt, uint8_t* data, uint32_t nbytes) {
   if (!nbytes) { return -3; } 
 
   if (pkt->capacity < nbytes) {
-    printf("Error: cannot write data into packet because we don't have enough space.\n");
+    printf("Error: cannot write data into packet because we don't have enough space we need: %u and have %u (rxs_packets.c).\n", nbytes, pkt->capacity);
     return -4;
   }
 

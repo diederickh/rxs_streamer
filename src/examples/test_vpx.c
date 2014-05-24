@@ -14,6 +14,7 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 #include <unistd.h>
 #include <signal.h>
 #include <uv.h>
@@ -147,7 +148,7 @@ int main() {
 #endif
 
   /* history of packets so we can resend them */
-  if (rxs_packets_init(&packets, 50, RXS_RTP_PAYLOAD_SIZE) < 0) {
+  if (rxs_packets_init(&packets, 50, RXS_RTP_PAYLOAD_SIZE + 256) < 0) { /* we add 256 for the RTP and RTP-VP8 payload header; this is more then enough ;-) */
     printf("Error: cannto initialize the packets history buffer.\n");
     exit(1);
   }
@@ -171,7 +172,11 @@ int main() {
       uint64_t currtime = uv_hrtime() / (1000llu * 1000llu * 10llu);
       uint64_t dt = (uv_hrtime() - ds)  / (1000llu * 1000llu);
 
+#if WRITE_IVF
+      if (rxs_encoder_encode(&encoder, (unsigned char*)gen.y, gen.frame) < 0) {
+#else
       if (rxs_encoder_encode(&encoder, (unsigned char*)gen.y, dt) < 0) {
+#endif
         printf("Error: encoding failed.\n");
       }
 
@@ -231,6 +236,7 @@ static void on_rtp_packet(rxs_packetizer* vpx, uint8_t* buffer, uint32_t nbytes)
 
 #if WRITE_IVF
   rxs_depacketizer_unwrap(&depack, buffer, (int64_t)nbytes);
+  return;
 #endif
 
   /* store this packet in the history */
@@ -263,19 +269,45 @@ static void on_rtp_packet(rxs_packetizer* vpx, uint8_t* buffer, uint32_t nbytes)
 
 static void on_vp8_depacket(rxs_depacketizer* dep, uint8_t* buffer, uint32_t nbytes) {
 
-  /* @todo: the depacketizer doesn't implement any logic anymore and 
-            because you can only call the decoder after you've received
-            a complete packet (marker = 1) and when it's a keyframe
-            we need to add some logic here .... or somewhere else 
-  */
-            
-  /* 
-  rxs_decoder_decode(&decoder, buffer, nbytes);
-  
 #if WRITE_IVF
-  rxs_ivf_write_frame(&ivf, dep->timestamp / 90, buffer, nbytes);
-#endif
+# if 1
+  /* Here we wait until we get a keyframe and then we start 
+     collecting until we get the "last packet" (where the marker
+     bit is set to 1). 
   */
+  static uint8_t data[1024 * 1024 * 4];
+  static uint32_t pos = 0;
+  static int had_key = 0;
+  static uint64_t nframe = 0;
+
+  if (!had_key && dep->N == 0) {
+    had_key = 1;
+  }
+
+  if (nbytes > 0) {
+    memcpy(data + pos, buffer, nbytes);
+    pos += nbytes;
+  }
+
+  if (had_key != 0) {
+
+    if (dep->marker == 1) {
+      rxs_ivf_write_frame(&ivf, nframe, data, pos);
+      nframe++;
+    }
+  }
+  if (dep->marker == 1) {
+    pos = 0;
+  }
+# else 
+  /* simply writing everything to a file: IMPORTANT: can only be done 
+     when the the video frames fit in on RTP packet */
+  static uint64_t nframe = 0;
+  rxs_ivf_write_frame(&ivf, nframe, buffer, nbytes);
+  nframe++;
+# endif 
+#endif
+
 }
 
 static void on_data(rxs_receiver* rec, uint8_t* buffer, uint32_t nbytes) {

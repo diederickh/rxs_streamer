@@ -61,7 +61,7 @@ int rxs_ivf_write_frame(rxs_ivf* k, uint64_t timestamp, uint8_t* data, uint32_t 
   assert(k);
   assert(k->fp != NULL);
 
-  printf("rxs_ivf_write_frame, timestamp: %lld, nbytes: %u\n", timestamp, len);
+  //printf("rxs_ivf_write_frame, timestamp: %lld, nbytes: %u\n", timestamp, len);
 
   rxs_ivf_write_u32(k, len);          /* bytes in frame */
   rxs_ivf_write_u64(k, timestamp);    /* timestamp */

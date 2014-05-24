@@ -49,6 +49,7 @@ int rxs_depacketizer_reset(rxs_depacketizer* dep) {
   dep->PictureID = 0;
   dep->TL0PICIDX = 0;
 
+  dep->pos = 0;
   dep->len = 0;
   dep->buf = NULL;
 
@@ -95,8 +96,6 @@ int depacketizer_unwrap_rtp(rxs_depacketizer* dep) {
     printf("Error: invalid number of bytes in rtp packet.\n");
     return -5;
   }
-
-  //int start_len = dep->len; 
 
   /* first bytes, version padding, extension, .. */
   dep->version    = (dep->buf[0] & 0xC0) >> 6;
@@ -214,16 +213,15 @@ int depacketizer_unwrap_vp8(rxs_depacketizer* dep) {
     dep->pos += dep->len;
   }
 
-  /* @todo:  we added a received_keyframe flag becuase libvpx crashes
+  /* @todo:  we added a received_keyframe flag because libvpx crashes
              on linux when you give it any data before a first keyframe.
              though this kind of logic should be handled by the user, 
              not in here. 
   */
 
   if (dep->on_packet) {
-    dep->on_packet(dep, dep->buffer, dep->pos);
+    dep->on_packet(dep, dep->buffer, dep->len);
   }
-  
             
   /*
   if (dep->marker == 1) {
@@ -240,7 +238,6 @@ int depacketizer_unwrap_vp8(rxs_depacketizer* dep) {
   if (dep->marker == 1) {
     dep->pos = 0;
   }
-
 
   return 0;
 }

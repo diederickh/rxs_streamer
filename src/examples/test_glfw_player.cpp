@@ -32,17 +32,20 @@ void resize_callback(GLFWwindow* window, int width, int height);
 
 /* ---------------------- begin: player specific ------------------------ */
 extern "C" {
+#  include <rxs_streamer/rxs_types.h>
 #  include <rxs_streamer/rxs_decoder.h>
 #  include <rxs_streamer/rxs_depacketizer.h>
 #  include <rxs_streamer/rxs_receiver.h>
 #  include <rxs_streamer/rxs_jitter.h>
+#  include <rxs_streamer/rxs_control.h>
 }
 
-#define USE_JITTER 0
+#define USE_JITTER 1
 rxs_decoder decoder;
 rxs_depacketizer depack;
 rxs_receiver rec;
 rxs_jitter jit;
+rxs_control_sender control_sender;
 
 static int init_player();
 static void on_vp8_packet(rxs_depacketizer* dep, uint8_t* buffer, uint32_t nbytes);
@@ -171,7 +174,7 @@ int main() {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     rxs_receiver_update(&rec);
-    //    rxs_jitter_update(&jit);
+    rxs_jitter_update(&jit);
 
     /* drawing */
     glUseProgram(prog);
@@ -308,7 +311,8 @@ static int init_player() {
   if (rxs_decoder_init(&decoder) < 0) {  return -1;  }
   if (rxs_depacketizer_init(&depack) < 0) { return -2; } 
   if (rxs_receiver_init(&rec, 6970) < 0) { return -3; } 
-  if (rxs_jitter_init(&jit) < 0) { return -3; } 
+  if (rxs_jitter_init(&jit) < 0) { return -4; } 
+  if (rxs_control_sender_init(&control_sender, "192.168.0.190", RXS_CONTROL_PORT) < 0) { return -5; } 
 
   rec.on_data = on_data;
   depack.on_packet = on_vp8_packet;
@@ -369,6 +373,7 @@ static void on_data(rxs_receiver* rec, uint8_t* buffer, uint32_t nbytes) {
 
 static void on_missing_seqnum(rxs_jitter* jit, uint16_t* seqnums, int num) {
   printf("------------- MISSING PACKET -------------------------\n");
+  rxs_control_sender_request_packets(&control_sender, seqnums, num);
 }
 
 static void on_frame(rxs_jitter* jit, uint8_t* data, uint32_t nbytes) {

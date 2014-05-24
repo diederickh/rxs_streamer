@@ -12,6 +12,8 @@ int rxs_encoder_init(rxs_encoder* enc, rxs_encoder_config* cfg) {
 
   vpx_codec_err_t err;
   int flags = VPX_CODEC_CAP_OUTPUT_PARTITION; 
+  //flags = VPX_CODEC_USE_OUTPUT_PARTITION;
+  //flags = 0;
 
   /* validate */
   if (!enc) { return -1; } 
@@ -27,19 +29,22 @@ int rxs_encoder_init(rxs_encoder* enc, rxs_encoder_config* cfg) {
   }
 
   /* update config */
-  enc->cfg.rc_target_bitrate = 1500;
+  enc->cfg.rc_target_bitrate = 15000;
   enc->cfg.g_w = cfg->width;
   enc->cfg.g_h = cfg->height;
   enc->cfg.g_timebase.num = 1;
   enc->cfg.g_timebase.den = (int) 1000;
 
+
   /* @todo - copied these settings from: https://github.com/3XX0/rtvs/blob/master/encode.c , have to verify/test those */
+#if 1
   enc->cfg.g_pass = VPX_RC_ONE_PASS;
   enc->cfg.g_error_resilient = 1;
   enc->cfg.kf_mode = VPX_KF_AUTO;
   enc->cfg.g_lag_in_frames = 0;
   enc->cfg.rc_dropframe_thresh = 1;
   enc->cfg.rc_end_usage = VPX_CBR;
+#endif
 
 #if 0
   enc->cfg.kf_mode = VPX_KF_AUTO;
