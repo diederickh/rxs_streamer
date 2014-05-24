@@ -18,3 +18,4 @@ fi
 #./test_glfw_player
 #./test_packets
 ./test_jitter
+#./test_control

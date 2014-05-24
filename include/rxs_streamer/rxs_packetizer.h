@@ -6,7 +6,6 @@
 #include <vpx/vp8cx.h>
 #include <rxs_streamer/rxs_types.h>
 
-#define RXS_PACK_PAYLOAD_SIZE 16371
 #define RXS_PACK_BUFFER_SIZE (1024 * 1024)
 
 typedef struct rxs_packetizer rxs_packetizer;
@@ -28,6 +27,7 @@ struct rxs_packetizer {
   /* VP8 RTP */
   uint8_t extended;                            /* should we add extension header */
   uint8_t pstart;                              /* start of vp8 partition */
+  uint8_t nonref;
   uint8_t pid;                                 /* partition id */
   int16_t picture_id;                          /* PictureID field */
   

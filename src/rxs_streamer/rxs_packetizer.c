@@ -50,6 +50,7 @@ int rxs_packetizer_reset(rxs_packetizer* vpx) {
   vpx->marker = 0;
   vpx->payload_type = 98;  
   vpx->timestamp = 0;
+  vpx->nonref = 0;
 
   /* vp8 rtp */
   vpx->pstart = 0;
@@ -72,12 +73,13 @@ int rxs_packetizer_wrap(rxs_packetizer* vpx, const vpx_codec_cx_pkt_t* pkt) {
   vpx->timestamp = pkt->data.frame.pts * 90; /* 90kHz per rfc */
   vpx->pstart = 1;
   vpx->extended = 1; /* add extension header for vp8 */
+  vpx->nonref = (pkt->data.frame.flags & VPX_FRAME_IS_KEY) ? 0 : 1;
 
   while(vpx->frame_len) {
 
     vpx->dx = 0;
     vpx->frame_size = packetizer_calc_payload_size(vpx);
-    vpx->marker = (vpx->frame_len < RXS_PACK_PAYLOAD_SIZE) 
+    vpx->marker = (vpx->frame_len < RXS_RTP_PAYLOAD_SIZE) 
                   && ((pkt->data.frame.flags & VPX_FRAME_IS_FRAGMENT) == 0);
 
     if (packetizer_wrap_rtp(vpx, pkt) < 0) {
@@ -125,7 +127,7 @@ void rxs_packetizer_print(rxs_packetizer* vpx) {
          vpx->marker,
          vpx->payload_type,
          0,
-         0,
+         vpx->nonref,
          vpx->pstart,
          vpx->pid,
          vpx->frame_size
@@ -136,8 +138,8 @@ void rxs_packetizer_print(rxs_packetizer* vpx) {
 /* ----------------------------------------------------------------------------- */
 
 static int packetizer_calc_payload_size(rxs_packetizer* vpx) {
-  if (vpx->frame_len >= RXS_PACK_PAYLOAD_SIZE) {
-    return RXS_PACK_PAYLOAD_SIZE;
+  if (vpx->frame_len >= RXS_RTP_PAYLOAD_SIZE) {
+    return RXS_RTP_PAYLOAD_SIZE;
   }
   else {
     return vpx->frame_len;
@@ -187,6 +189,7 @@ static int packetizer_wrap_vp8(rxs_packetizer* vpx, const vpx_codec_cx_pkt_t* pk
   /* unset all (makes sure all R bits are set to 0) */
   vpx->buffer[vpx->dx]  = 0;
   vpx->buffer[vpx->dx]  = (vpx->extended                & 0x01) << 7;      /* VP8 RTP: extension bit set? */
+  vpx->buffer[vpx->dx] |= (vpx->nonref                  & 0x01) << 5;      /* VP8 RTP: non reference frame,  0 = can be discarded, 1 = key/golden frame. */
   vpx->buffer[vpx->dx] |= (vpx->pstart                  & 0x01) << 4;      /* VP8 RTP: S bit, start of parition. */
   vpx->buffer[vpx->dx] |= (pkt->data.frame.partition_id & 0x07);           /* VP8 RTP: PID: parition index. */
   vpx->dx++;

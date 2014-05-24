@@ -20,6 +20,13 @@ int rxs_decoder_init(rxs_decoder* dec) {
   return 0;
 }
 
+/*
+ 
+  Decode the given data. Note that on linux libvpx 
+  will crash at this moment when the first partition 
+  you pass into this function is not a key frame. 
+
+ */
 int rxs_decoder_decode(rxs_decoder* dec, uint8_t* buffer, uint32_t nbytes) {
 
   vpx_codec_iter_t iter = NULL;

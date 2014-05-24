@@ -62,14 +62,15 @@ int rxs_sender_send(rxs_sender* net, uint8_t* buffer, uint32_t nbytes) {
 
   if (r != 0) {
     printf("Error: cannot send udp: %s\n", uv_strerror(r));
+    /* @todo -> shouldn't we free the allocated buffer here? */
     return -1;
   }
   return 0;
 }
 
 void rxs_sender_update(rxs_sender* net){
-  //  uv_run(net->loop, UV_RUN_NOWAIT);
-  uv_run(net->loop, UV_RUN_DEFAULT);
+  uv_run(net->loop, UV_RUN_NOWAIT);
+  //uv_run(net->loop, UV_RUN_DEFAULT);
 }
 
 /* ----------------------------------------------------------------------------- */

@@ -8,3 +8,8 @@
  - The depacketizer needs to implement a jitter buffer and      
    add the code to correctly construct a receive frame from 
    multiple packets (and ofc. checking for lost packets).
+
+ rxs_control
+ -----------
+ - Better send buffer management (shouldn't allocate on heap
+   for commands, see note at control_sender_send. )

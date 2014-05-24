@@ -26,18 +26,12 @@ int main() {
   }
 
   for (i = 0; i < 15; ++i) {
-    pkt = rxs_packets_find_free(&ps);
-    if (!pkt) {
-      printf("Warning: cannot find a free packet for: %d\n", i);
+    printf("Writing into a packet: %p, %zu bytes\n", pkt->data, FAKE_SIZE);
+    if (rxs_packets_write(&ps, fake_data, sizeof(fake_data)) < 0) {
+      printf("Error: cannot write to packet.\n");
     }
     else {
-      printf("Writing into a packet: %p, %zu bytes\n", pkt->data, FAKE_SIZE);
-      if (rxs_packet_write(pkt, fake_data, sizeof(fake_data)) < 0) {
-        printf("Error: cannot write to packet.\n");
-      }
-      else {
-        printf("Wrote some fake data.\n");
-      }
+      printf("Wrote some fake data.\n");
     }
     printf("-\n");
   }

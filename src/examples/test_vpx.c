@@ -22,16 +22,18 @@
 #include <rxs_streamer/rxs_decoder.h>
 #include <rxs_streamer/rxs_packetizer.h>
 #include <rxs_streamer/rxs_depacketizer.h>
+#include <rxs_streamer/rxs_packets.h>
 #include <rxs_streamer/rxs_ivf.h>
 #include <rxs_streamer/rxs_sender.h>
 #include <rxs_streamer/rxs_receiver.h>
+#include <rxs_streamer/rxs_control.h>
 
 #define USE_RECEIVER 0
-#define USE_DROPPING 1  /* when set to 1 we will fake dropping of frames every N-th frame. */
-#define WRITE_IVF 0 /* when set to 1, we will write the depacketized rtp stream into a .ivf file */
+#define USE_DROPPING 1                    /* when set to 1 we will fake dropping of frames every N-th frame. */
+#define WRITE_IVF 0                       /* when set to 1, we will write the depacketized rtp stream into a .ivf file */
 #define WIDTH 640
 #define HEIGHT 480
-#define FPS 30
+#define FPS 2
 
 rxs_ivf ivf;
 rxs_encoder encoder;
@@ -39,8 +41,16 @@ rxs_decoder decoder;
 rxs_packetizer pack;
 rxs_depacketizer depack;
 rxs_sender sender;
+rxs_packets packets;                     /* used to keep track of the last n-packets, can be used to resend */
+rxs_control_receiver control_receiver;   /* handles incoming control messages, works together with the packets */
+
 #if USE_RECEIVER
   rxs_receiver receiver;
+#endif
+
+#if USE_DROPPING
+uint64_t frame_count= 0;
+uint64_t frame_drop = 10; /* drop every `frame_drop` frame */
 #endif
 
 uint64_t frame_timeout = 0;
@@ -51,6 +61,7 @@ static void on_vp8_packet(rxs_encoder* enc, const vpx_codec_cx_pkt_t* pkt, int64
 static void on_rtp_packet(rxs_packetizer* vpx, uint8_t* buffer, uint32_t nbytes);
 static void on_vp8_depacket(rxs_depacketizer* dep, uint8_t* buffer, uint32_t nbytes);   /* gets called when we've collected a complete frame from the packetized rtp vp8 stream */
 static void on_data(rxs_receiver* rec, uint8_t* buffer, uint32_t nbytes);
+static void on_command(rxs_control_receiver* rec); /* gets called when we received a command on the control channel. */
 
 int main() {
 
@@ -134,6 +145,21 @@ int main() {
   receiver.on_data = on_data;
 #endif
 
+  /* history of packets so we can resend them */
+  if (rxs_packets_init(&packets, 50, RXS_RTP_PAYLOAD_SIZE) < 0) {
+    printf("Error: cannto initialize the packets history buffer.\n");
+    exit(1);
+  }
+
+  /* control command handler. */
+  printf("+++\n");
+  if (rxs_control_receiver_init(&control_receiver, RXS_CONTROL_PORT) < 0) {
+    printf("Error: cannot init control receiver.\n");
+    exit(1);
+  }
+  control_receiver.on_command = on_command;
+  printf("+++\n");
+
   uint64_t ds = uv_hrtime();
 
   while(1) {
@@ -158,6 +184,7 @@ int main() {
 #endif
     }
 
+    rxs_control_receiver_update(&control_receiver);
     rxs_sender_update(&sender);
   }
 
@@ -168,6 +195,28 @@ int main() {
 
 static void sigh(int sn) {
   exit(1);
+}
+
+static void on_command(rxs_control_receiver* rec) {
+  int i;
+  rxs_packet* pkt = NULL;
+  if (rec->command == RXS_CONTROL_COMMAND_RESEND) {
+    for (i = 0; i < rec->count; ++i) {
+      printf("- must resend: %d\n", rec->seqnums[i]);
+      pkt = rxs_packets_find_seqnum(&packets, rec->seqnums[i]);
+      if (pkt) {
+        if (rxs_sender_send(&sender, pkt->data, pkt->nbytes) < 0) {
+          printf("Error: cannot resend packet: %d\n", rec->seqnums[i]);
+        }
+      }
+      else {
+        printf("Error: cannot find sequence number to resend: %d\n", rec->seqnums[i]);
+      }
+    }
+  }
+  else {
+    printf("Got unhandled command: %d\n", rec->command);
+  }
 }
 
 static void on_vp8_packet(rxs_encoder* enc, const vpx_codec_cx_pkt_t* pkt, int64_t pts) {
@@ -181,6 +230,28 @@ static void on_rtp_packet(rxs_packetizer* vpx, uint8_t* buffer, uint32_t nbytes)
 
 #if WRITE_IVF
   rxs_depacketizer_unwrap(&depack, buffer, (int64_t)nbytes);
+#endif
+
+  /* store this packet in the history */
+  rxs_packet* pkt = rxs_packets_next(&packets);
+  if (!pkt) {
+    printf("Error: cannot get next packet for history.\n");
+    exit(1);
+  }
+
+  pkt->seqnum = vpx->seqnum;
+
+  if (rxs_packet_write(pkt, buffer, nbytes) < 0) {
+    printf("Error: cannot write the history data.\n");
+    exit(1);
+  }
+
+#if USE_DROPPING
+  frame_count++;
+  if (frame_count % frame_drop == 0) {
+    printf("Simulate a drop.\n");
+    return;
+  }
 #endif
 
   if (rxs_sender_send(&sender, buffer, nbytes) < 0) {

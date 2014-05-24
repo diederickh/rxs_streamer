@@ -27,6 +27,7 @@ set(rxs_streamer_sources
   ${sd}/rxs_streamer/rxs_ivf.c
   ${sd}/rxs_streamer/rxs_packets.c
   ${sd}/rxs_streamer/rxs_jitter.c
+  ${sd}/rxs_streamer/rxs_control.c
 )
 
 if(UNIX AND NOT APPLE)
@@ -105,11 +106,15 @@ add_executable(test_packets ${sd}/examples/test_packets.c ${app_sources})
 target_link_libraries(test_packets rxs_streamer ${app_libs})
 install(TARGETS test_packets DESTINATION bin)
 
-
 # test jitter
 add_executable(test_jitter ${sd}/examples/test_jitter.c ${app_sources})
 target_link_libraries(test_jitter rxs_streamer ${app_libs})
 install(TARGETS test_jitter DESTINATION bin)
+
+# test control
+add_executable(test_control ${sd}/examples/test_control.c ${app_sources})
+target_link_libraries(test_control rxs_streamer ${app_libs})
+install(TARGETS test_control DESTINATION bin)
 
 
 

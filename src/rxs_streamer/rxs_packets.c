@@ -12,11 +12,11 @@ static int packets_sort_seqnum(const void* a, const void* b);
 int rxs_packet_init(rxs_packet* pkt) {
   if (!pkt) { return -1; } 
 
-  pkt->is_free = 1;
   pkt->data = NULL;
   pkt->nbytes = 0;
   pkt->capacity = 0;
   pkt->marker = 0;
+  pkt->state = 0;
 
   return 0;
 }
@@ -24,13 +24,13 @@ int rxs_packet_init(rxs_packet* pkt) {
 int rxs_packet_clear(rxs_packet* pkt) {
   if (!pkt) { return -1; } 
 
-  pkt->is_free = 1;
   pkt->data = NULL;
   pkt->nbytes = 0;
   pkt->capacity = 0;
   pkt->seqnum = 0;
   pkt->marker = 0;
   pkt->timestamp = 0;
+  pkt->state = 0;
 
   return 0;
 }
@@ -49,9 +49,20 @@ int rxs_packet_write(rxs_packet* pkt, uint8_t* data, uint32_t nbytes) {
   memcpy(pkt->data, data, nbytes);
 
   pkt->nbytes = nbytes;
-  pkt->is_free = 0;
 
   return 0;
+}
+
+void rxs_packet_print(rxs_packet* pkt) {
+  if (!pkt) { return ; } 
+
+  printf("seqnum: %d, timestamp: %d, marker: %d, nbytes: %d, ",
+         pkt->seqnum,
+         pkt->timestamp,
+         pkt->marker,
+         pkt->nbytes
+  );
+         
 }
 
 /* ----------------------------------------------------------------------------- */
@@ -92,6 +103,50 @@ int rxs_packets_init(rxs_packets* ps, int num, uint32_t nframebytes) {
     ps->packets[i].capacity = nframebytes;
   }
 
+  ps->dx = 0;
+
+  return 0;
+}
+
+rxs_packet* rxs_packets_next(rxs_packets* ps) {
+
+  if (!ps) { return NULL; }
+
+#if !defined(NDEBUG)
+  if (ps->dx >= ps->npackets) {
+    printf("Error: the packets write index is invalid: %d, npackets: %d\n", ps->dx, ps->npackets);
+    return -4;
+  }
+#endif
+
+  /* get packet */
+  rxs_packet* pkt = &ps->packets[ps->dx];
+
+  /* jump to the next packet */
+  ps->dx++;
+  ps->dx = (ps->dx % ps->npackets);
+
+  return pkt;
+}
+
+/* write into the next packet */                  
+int rxs_packets_write(rxs_packets* ps, uint8_t* data, uint32_t nbytes) {
+
+  if (!ps) { return -1; } 
+  if (!data) { return -2; } 
+  if (!nbytes) { return -3; } 
+
+  rxs_packet* pkt = rxs_packets_next(ps);
+  if (!pkt) {
+    printf("Error: cannot get packet to write into.\n");
+    return -4;
+  }
+
+  if (rxs_packet_write(pkt, data, nbytes) < 0) {
+    printf("Error: cannot write into packet.\n");
+    return -5;
+  }
+
   return 0;
 }
 
@@ -116,7 +171,22 @@ int rxs_packets_clear(rxs_packets* ps) {
   return 0;
 }
 
+rxs_packet* rxs_packets_find_seqnum(rxs_packets* ps, uint16_t seqnum){
+
+  int i;
+
+  if (!ps) { return NULL; } 
+  
+  for (i = 0; i < ps->npackets; ++i) {
+    if (ps->packets[i].seqnum == seqnum) {
+      return &ps->packets[i];
+    }
+  }
+  return NULL;
+}
+
 /* find a free packet, returns NULL when we don't have any new packets.*/
+/*
 rxs_packet* rxs_packets_find_free(rxs_packets* ps) { 
 
   int i;
@@ -129,8 +199,10 @@ rxs_packet* rxs_packets_find_free(rxs_packets* ps) {
 
   return NULL;
 }
+*/
 
 int rxs_packets_sort_seqnum(rxs_packets* ps) {
+
   if (!ps) { return -1; } 
   
   qsort(ps->packets, ps->npackets, sizeof(rxs_packet), packets_sort_seqnum) ;
@@ -158,7 +230,4 @@ static int packets_sort_seqnum(const void* a, const void* b) {
   else {
     return -1;
   }
-
-
-
 }
