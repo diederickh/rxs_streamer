@@ -1,5 +1,10 @@
 /* 
 
+   test_jitter
+   -----------
+   
+   Testing rxs_jitter. 
+   
    References: 
    -----------
    
@@ -57,6 +62,7 @@ int main() {
     exit(1);
   }
 
+  //if (rxs_control_sender_init(&control_sender, "192.168.0.190", RXS_CONTROL_PORT) < 0) {
   if (rxs_control_sender_init(&control_sender, "0.0.0.0", RXS_CONTROL_PORT) < 0) {
     printf("Error: cannot control sender.\n");
     exit(1);
@@ -65,11 +71,8 @@ int main() {
   receiver.on_data = on_data;
   depack.on_packet = on_packet;
   decoder.on_image = on_vp8_image;
-
-  jit.mode = RXS_JIT_MODE_RESEND;
   jit.on_missing_seqnum = on_missing_seqnum;
   jit.on_frame = on_frame;
-  jit.on_packet = on_jit_packet;
 
   while(1) {
     rxs_receiver_update(&receiver);
@@ -94,12 +97,7 @@ static void on_data(rxs_receiver* r, uint8_t* buf, uint32_t nbytes) {
 
 static void on_packet(rxs_depacketizer* d, uint8_t* buffer, uint32_t nbytes) {
 
-  /*
-  if (rxs_decoder_decode(&decoder, buffer, nbytes) < 0) {
-    exit(0);
-  }
-  */
-
+  /* copy all necessary data for the jitter buffer */
   rxs_packet p;
   p.marker = d->marker;
   p.timestamp = d->timestamp;
@@ -108,7 +106,6 @@ static void on_packet(rxs_depacketizer* d, uint8_t* buffer, uint32_t nbytes) {
   p.nbytes = nbytes;
   p.nonref = d->N;
 
-  //printf("Got: %u, seqnum: %d\n", nbytes, p.seqnum);
   if (rxs_jitter_add_packet(&jit, &p) < 0) {
     printf("Error: could not add a new packet to the jitter buffer.\n");
     exit(1);
@@ -117,13 +114,10 @@ static void on_packet(rxs_depacketizer* d, uint8_t* buffer, uint32_t nbytes) {
 
 static void on_missing_seqnum(rxs_jitter* jit, uint16_t* seqnums, int num) {
   printf("Missing some sequence numbers: %d\n", num);
-  //printf("Missing seqnum: %u\n", jit->missing_seqnum);
   rxs_control_sender_request_packets(&control_sender, seqnums, num);
 }
 
 static void on_frame(rxs_jitter* jit, uint8_t* data, uint32_t nbytes) {
-  //printf("on frame: %u\n", nbytes);
-
   if (rxs_decoder_decode(&decoder, data, nbytes) < 0) {
     printf("Error: cannot decode.\n");
     exit(1);

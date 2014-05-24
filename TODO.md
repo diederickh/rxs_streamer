@@ -13,3 +13,7 @@
  -----------
  - Better send buffer management (shouldn't allocate on heap
    for commands, see note at control_sender_send. )
+
+ rxs_jitter
+ ----------
+ - Implement a rxs_jitter_clear() that deallocates the buffer + packets.
