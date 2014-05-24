@@ -33,7 +33,7 @@
 #define WRITE_IVF 0                       /* when set to 1, we will write the depacketized rtp stream into a .ivf file */
 #define WIDTH 640
 #define HEIGHT 480
-#define FPS 2
+#define FPS 15
 
 rxs_ivf ivf;
 rxs_encoder encoder;
@@ -131,7 +131,8 @@ int main() {
   }
 
   /* networking */
-  if (rxs_sender_init(&sender, "0.0.0.0", 6970) < 0) {
+  // if (rxs_sender_init(&sender, "0.0.0.0", 6970) < 0) {
+ if (rxs_sender_init(&sender, "192.168.0.230", 6970) < 0) {
     // if (rxs_sender_init(&sender, "192.168.0.194", 6970) < 0) {
     printf("Error: cannot initialize networking.\n");
     exit(1);

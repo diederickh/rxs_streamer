@@ -134,7 +134,7 @@ void rxs_jitter_update(rxs_jitter* jit) {
     jit->next_dx = 0;
     jit->packet_dx = 0;
     jit->curr_pkt = &jit->packets.packets[0];
-    printf("First timeout set: %llu, first seqnum: %lld\n", jit->timeout, jit->curr_pkt->seqnum);
+    printf("First timeout set: %llu, first seqnum: %u\n", jit->timeout, jit->curr_pkt->seqnum);
   }
 
   if (now < jit->timeout) {

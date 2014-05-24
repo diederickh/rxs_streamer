@@ -134,7 +134,7 @@ static int control_sender_send(rxs_control_sender* send) {
   }
 
   memcpy(data, send->buffer, send->dx);
-  buf = uv_buf_init(data, send->dx);
+  buf = uv_buf_init((char*)data, send->dx);
   req = (uv_udp_send_t*)malloc(sizeof(uv_udp_send_t));
   if (!req) {
     printf("Error: cannot allocate a send request in the controller.\n");
@@ -251,7 +251,7 @@ static void receiver_recv_cb(uv_udp_t* handle,
   int i;
   int dx = 0;
   rxs_control_receiver* rec = (rxs_control_receiver*) handle->data;
-  uint8_t* buffer = buf->base;
+  uint8_t* buffer = (uint8_t*)buf->base;
 
   if (nread == 0) {
     /* @todo - how to we handle this ? */

@@ -26,7 +26,7 @@ int main() {
   }
 
   for (i = 0; i < 15; ++i) {
-    printf("Writing into a packet: %p, %zu bytes\n", pkt->data, FAKE_SIZE);
+    printf("Writing into a packet: %p, %u bytes\n", pkt->data, FAKE_SIZE);
     if (rxs_packets_write(&ps, fake_data, sizeof(fake_data)) < 0) {
       printf("Error: cannot write to packet.\n");
     }

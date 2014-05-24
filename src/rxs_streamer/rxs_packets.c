@@ -56,7 +56,7 @@ int rxs_packet_write(rxs_packet* pkt, uint8_t* data, uint32_t nbytes) {
 void rxs_packet_print(rxs_packet* pkt) {
   if (!pkt) { return ; } 
 
-  printf("seqnum: %d, timestamp: %d, marker: %d, nbytes: %d, ",
+  printf("seqnum: %d, timestamp: %llu, marker: %d, nbytes: %d, ",
          pkt->seqnum,
          pkt->timestamp,
          pkt->marker,
