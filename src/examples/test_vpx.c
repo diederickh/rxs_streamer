@@ -29,11 +29,11 @@
 #include <rxs_streamer/rxs_control.h>
 
 #define USE_RECEIVER 0
-#define USE_DROPPING 1                    /* when set to 1 we will fake dropping of frames every N-th frame. */
+#define USE_DROPPING 0                    /* when set to 1 we will fake dropping of frames every N-th frame. */
 #define WRITE_IVF 0                       /* when set to 1, we will write the depacketized rtp stream into a .ivf file */
 #define WIDTH 640
 #define HEIGHT 480
-#define FPS 2
+#define FPS 20
 
 rxs_ivf ivf;
 rxs_encoder encoder;

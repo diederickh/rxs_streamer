@@ -35,16 +35,21 @@ extern "C" {
 #  include <rxs_streamer/rxs_decoder.h>
 #  include <rxs_streamer/rxs_depacketizer.h>
 #  include <rxs_streamer/rxs_receiver.h>
+#  include <rxs_streamer/rxs_jitter.h>
 }
 
+#define USE_JITTER 0
 rxs_decoder decoder;
 rxs_depacketizer depack;
 rxs_receiver rec;
+rxs_jitter jit;
 
 static int init_player();
 static void on_vp8_packet(rxs_depacketizer* dep, uint8_t* buffer, uint32_t nbytes);
 static void on_vp8_image(rxs_decoder* dec, vpx_image_t* img);
 static void on_data(rxs_receiver* rec, uint8_t* buffer, uint32_t nbytes);
+static void on_missing_seqnum(rxs_jitter* jit, uint16_t* seqnums, int num);
+static void on_frame(rxs_jitter* jit, uint8_t* data, uint32_t nbytes);
 
 static const char* RXP_PLAYER_VS = ""
   "#version 330\n"
@@ -166,6 +171,7 @@ int main() {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     rxs_receiver_update(&rec);
+    //    rxs_jitter_update(&jit);
 
     /* drawing */
     glUseProgram(prog);
@@ -302,10 +308,13 @@ static int init_player() {
   if (rxs_decoder_init(&decoder) < 0) {  return -1;  }
   if (rxs_depacketizer_init(&depack) < 0) { return -2; } 
   if (rxs_receiver_init(&rec, 6970) < 0) { return -3; } 
+  if (rxs_jitter_init(&jit) < 0) { return -3; } 
 
   rec.on_data = on_data;
   depack.on_packet = on_vp8_packet;
   decoder.on_image = on_vp8_image;
+  jit.on_missing_seqnum = on_missing_seqnum;
+  jit.on_frame = on_frame;
   return 0;
 }
 
@@ -314,11 +323,57 @@ static void on_vp8_packet(rxs_depacketizer* dep, uint8_t* buffer, uint32_t nbyte
              we can only pass packets to the vp8 decoder after/when we receive
              a keyframe else libvpx causes the app to crash on linux. 
   */
+#if USE_JITTER
+  rxs_packet pkt;
+  pkt.marker = dep->marker;
+  pkt.timestamp = dep->timestamp;
+  pkt.seqnum = dep->seqnum; 
+  pkt.data = buffer;
+  pkt.nbytes = nbytes;
+  pkt.nonref = dep->N;
+
+  if (rxs_jitter_add_packet(&jit, &pkt) < 0) {
+    printf("Error: cannot add a packet to the jitter buffer.\n");
+    exit(1);
+  }
+#else 
+  static uint8_t data[1024 * 1024 * 4];
+  static uint32_t pos = 0;
+  static int had_key = 0;
+  if (!had_key && dep->N == 0) {
+    had_key = 1;
+  }
+
+  if (nbytes > 0) {
+    memcpy(data + pos, buffer, nbytes);
+    pos += nbytes;
+  }
+
+  if (had_key != 0) {
+
+    if (dep->marker == 1) {
+      rxs_decoder_decode(&decoder, data, pos);
+    }
+  }
+  if (dep->marker == 1) {
+    pos = 0;
+  }
+#endif
+
   //rxs_decoder_decode(&decoder, buffer, nbytes);
 }
 
 static void on_data(rxs_receiver* rec, uint8_t* buffer, uint32_t nbytes) {
   rxs_depacketizer_unwrap(&depack, buffer, (int64_t)nbytes);
+}
+
+static void on_missing_seqnum(rxs_jitter* jit, uint16_t* seqnums, int num) {
+  printf("------------- MISSING PACKET -------------------------\n");
+}
+
+static void on_frame(rxs_jitter* jit, uint8_t* data, uint32_t nbytes) {
+  printf("Got a VP8 frame.\n");
+  rxs_decoder_decode(&decoder, data, nbytes);
 }
 
 static void on_vp8_image(rxs_decoder* dec, vpx_image_t* img) {

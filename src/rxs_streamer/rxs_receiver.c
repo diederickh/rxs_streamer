@@ -59,6 +59,7 @@ int rxs_receiver_init(rxs_receiver* rec, int port) {
 
 void rxs_receiver_update(rxs_receiver* r) {
   uv_run(r->loop, UV_RUN_NOWAIT);
+  //uv_run(r->loop, UV_RUN_DEFAULT);
 }
 
 
