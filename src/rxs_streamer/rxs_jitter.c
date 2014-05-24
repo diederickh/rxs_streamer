@@ -7,12 +7,12 @@
 
 /* ----------------------------------------------------------------------------- */
 
-static int jitter_merge_packets(rxs_jitter* jit, uint64_t timestamp);
 static rxs_packet* jitter_next_packet(rxs_jitter* jit);
+static int jitter_merge_packets(rxs_jitter* jit, uint64_t timestamp);
 static int jitter_sort_seqnum(const void* a, const void* b);
 static int jitter_get_packets_for_timestamp(rxs_jitter* jit, uint64_t timestamp, rxs_packet** result, int maxPackets); /* fills the given `result` parameter with packets with the same timestamp */
 static int jitter_check_sequence_order(rxs_jitter* jit, rxs_packet** packets, int npackets); /* detects missing sequence number. when an error occurs or when it detects a missing sequence it returns a value < 0. */
-static int jitter_is_frame_complete(rxs_packet** packets, int npackets); /* checks if the given packets can form a complete frame. */
+static int jitter_is_frame_complete(rxs_packet** packets, int npackets);                     /* checks if the given packets can form a complete frame. */
 
 /* ----------------------------------------------------------------------------- */
 
@@ -28,22 +28,15 @@ int rxs_jitter_init(rxs_jitter* jit) {
     return -2;
   }
 
-  jit->pos = 0;
-  jit->missing_seqnum = 0;
+  jit->npackets = 0;
   jit->prev_seqnum = 0;
   jit->checked_seqnum = 0;
-  jit->npackets = 0;
   jit->timeout = 0;
   jit->time_start = 0;
   jit->timestamp_start = 0;
-  jit->packet_dx = 0;
-  jit->curr_pkt = NULL;
-  jit->write_dx = 0;
   jit->found_keyframe = 0;
-  jit->mode = RXS_JIT_MODE_NONE;
+  jit->curr_pkt = NULL;
 
-  jit->correct_dx = nsize / 3;
-  jit->check_dx = jit->correct_dx + (nsize / 3);
 
   /* allocate some space for that we use to merge the packets */
   jit->capacity = 1024 * 1024 * 4;
@@ -56,28 +49,29 @@ int rxs_jitter_init(rxs_jitter* jit) {
   return 0;
 }
 
-
 int rxs_jitter_add_packet(rxs_jitter* jit, rxs_packet* pkt) {
 
-  uint32_t i;
-  uint32_t nmissing = 0;
-  rxs_packet* free_pkt = NULL;
   static uint16_t missing_seqnums[15]; /* we need to store this max somewhere; should be same as RXS_CONTROL_MAX_SEQNUM */
+  uint32_t nmissing = 0;
+  uint32_t i;
+  rxs_packet* free_pkt = NULL;
 
   if (!jit) { return -1; }
   if (!pkt) { return -2; } 
 
   /* find a free packet */
-  free_pkt = &jit->packets.packets[jit->write_dx];
-  jit->write_dx = (++jit->write_dx) % jit->packets.npackets;
-
-  if (pkt->nbytes > free_pkt->capacity) {
-    printf("Error: size of the incoming packet it too big for the jitter buffer: %d > %d.\n", pkt->nbytes, free_pkt->capacity);
+  free_pkt = rxs_packets_next(&jit->packets);
+  if (!free_pkt) {
+    printf("Error: fetching next packet failed.\n");
     return -3;
   }
 
+  if (pkt->nbytes > free_pkt->capacity) {
+    printf("Error: size of the incoming packet it too big for the jitter buffer: %d > %d.\n", pkt->nbytes, free_pkt->capacity);
+    return -4;
+  }
+
   /* copy the packet info */
-  //free_pkt->is_free = 0;
   free_pkt->marker = pkt->marker;
   free_pkt->timestamp = ((uint64_t)(pkt->timestamp)* ( (double)(1.0/90000) )) * 1000 * 1000 * 1000 ;
   free_pkt->seqnum = pkt->seqnum;
@@ -112,13 +106,8 @@ int rxs_jitter_add_packet(rxs_jitter* jit, rxs_packet* pkt) {
 
 void rxs_jitter_update(rxs_jitter* jit) {
 
-  int i = 0;
-  uint64_t diff = 0;
-  uint32_t next_timestamp = 0;
   uint64_t now  = ((uv_hrtime() - jit->time_start));
   rxs_packet* pkt = NULL;  
-  rxs_packet* best_pkt = NULL;
-  rxs_packet* packets = jit->packets.packets;
 
   /* only when our buffer is filled */
   if (jit->npackets < (jit->packets.npackets / 2)) {
@@ -130,9 +119,6 @@ void rxs_jitter_update(rxs_jitter* jit) {
     jit->timestamp_start = jit->packets.packets[0].timestamp;
     jit->time_start = uv_hrtime();
     jit->timeout = now;
-    jit->curr_dx = 0;
-    jit->next_dx = 0;
-    jit->packet_dx = 0;
     jit->curr_pkt = &jit->packets.packets[0];
     printf("First timeout set: %llu, first seqnum: %lld\n", jit->timeout, jit->curr_pkt->seqnum);
   }
@@ -164,21 +150,6 @@ void rxs_jitter_update(rxs_jitter* jit) {
   printf("no next packet found\n");
   exit(0);
   return ;
-}
-
-/* this function simple make all packets free again. will be done when the remote stream is restarted */
-int rxs_jitter_reset(rxs_jitter* jit){
-
-  /*
-  int i = 0;
-
-  if (!jit) { return -1; } 
-  
-  for (i = 0; i < jit->packets.npackets; ++i) {
-    jit->packets.packets[i].is_free = 1;
-  }
-  */
-  return 0;
 }
 
 /* ----------------------------------------------------------------------------- */
@@ -304,9 +275,12 @@ static int jitter_check_sequence_order(rxs_jitter* jit,
   for(i = 0; i < npackets; ++i) {
     if ( jit->checked_seqnum && (jit->checked_seqnum + 1) != packets[i]->seqnum) {
       //printf("~~ missing: %d\n", jit->checked_seqnum +1 );
-    }
-    //printf("- %d\n", packets[i]->seqnum);
 
+      /* @todo  this is where a packet is really lost and we
+                should probably ask the sender for a new 
+                keyframe. 
+      */
+    }
     jit->checked_seqnum = packets[i]->seqnum;
   }
 

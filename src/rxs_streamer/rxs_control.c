@@ -299,7 +299,6 @@ static void receiver_recv_cb(uv_udp_t* handle,
   if (rec->on_command) {
     rec->on_command(rec);
   }
-
 }
 
 /* ----------------------------------------------------------------------------- */
