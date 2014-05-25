@@ -13,10 +13,11 @@
 #include <rxs_streamer/rxs_packets.h>
 
 typedef struct rxs_reconstruct rxs_reconstruct;
-typedef void(*rxs_reconstruct_seqnum_callback)(rxs_reconstruct* rec, uint16_t* seqnums, int num);  /* gets called when a packet is added that an invalid sequence number. */
+typedef void(*rxs_reconstruct_seqnum_callback)(rxs_reconstruct* rec, uint16_t* seqnums, int num);    /* gets called when a packet is added that an invalid sequence number. */
 typedef void(*rxs_reconstruct_frame_callback)(rxs_reconstruct* rec, uint8_t* data, uint32_t nbytes); /* gets called when we've merged a frame */
 
 struct rxs_reconstruct {
+
   /* buffer + checking */
   rxs_packets packets;
   uint16_t prev_seqnum;

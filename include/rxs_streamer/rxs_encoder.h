@@ -37,13 +37,15 @@ struct rxs_encoder {
   int fps_num;
   int fps_den;
   unsigned long frame_duration;
+  int flags;                            /* encoder flags, e.g. used by rxs_encoder_request_keyframe */
 
   /* callbacks */
   void* user;
   rxs_pkt_callback on_packet;
 };
 
-int rxs_encoder_init(rxs_encoder* enc, rxs_encoder_config* cfg);
-int rxs_encoder_encode(rxs_encoder* enc, unsigned char* yuv420, int64_t pts);
+int rxs_encoder_init(rxs_encoder* enc, rxs_encoder_config* cfg);               /* initialize the encoder */
+int rxs_encoder_encode(rxs_encoder* enc, unsigned char* yuv420, int64_t pts);  /* encode the given buffer */
+int rxs_encoder_request_keyframe(rxs_encoder* enc);                            /* will ask the encoder to return a keyframe */
 
 #endif

@@ -20,7 +20,6 @@ int rxs_reconstruct_init(rxs_reconstruct* rc) {
     return -2;
   }
 
-
   /* allocate some space for that we use to merge the packets */
   rc->capacity = 1024 * 1024 * 4;
   rc->buffer = (uint8_t*) malloc(rc->capacity); 
@@ -41,10 +40,16 @@ int rxs_reconstruct_clear(rxs_reconstruct* rc) {
   
   rc->prev_seqnum = 0;
   rc->checked_seqnum = 0;
+  rc->capacity = 0;
+  rc->found_keyframe = 0;
+  
+  if (rc->buffer) { 
+    free(rc->buffer);
+    rc->buffer = NULL;
+  }
 
   return rxs_packets_clear(&rc->packets);
 }
-
 
 /*
   Add a packet which we can use to reconstruct a frame.
@@ -170,9 +175,6 @@ int rxs_reconstruct_merge_packets(rxs_reconstruct* rc, uint64_t timestamp) {
     rc->on_frame(rc, rc->buffer, pos);
   }
 
-  printf("We can reconstruct: %d packets.\n", npackets);
-
-  //  recon_j = rxs_packets_find_timestamp(&jit->reconstruct->packets, timestamp, recon_packets, RXS_MAX_SPLIT_PACKETS);
   return 0;
 }
 
@@ -197,8 +199,6 @@ int rxs_reconstruct_is_frame_complete(rxs_packet** packets, int npackets) {
 
   return (packets[npackets - 1]->marker == 1) ? 0 : -3;
 }
-
-
 
 
 /* ----------------------------------------------------------------------------- */

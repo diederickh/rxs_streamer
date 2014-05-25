@@ -220,6 +220,10 @@ static void on_command(rxs_control_receiver* rec) {
       }
     }
   }
+  else if(rec->command == RXS_CONTROL_COMMAND_KEY_FRAME) {
+    printf(" - requesting keyframe.\n");
+    rxs_encoder_request_keyframe(&encoder);
+  }
   else {
     printf("Got unhandled command: %d\n", rec->command);
   }

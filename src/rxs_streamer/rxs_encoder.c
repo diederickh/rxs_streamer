@@ -75,7 +75,6 @@ int rxs_encoder_init(rxs_encoder* enc, rxs_encoder_config* cfg) {
   return 0;
 }
 
-
 int rxs_encoder_encode(rxs_encoder* enc, unsigned char* yuv420, int64_t pts) {
   
   vpx_codec_err_t err;
@@ -92,7 +91,7 @@ int rxs_encoder_encode(rxs_encoder* enc, unsigned char* yuv420, int64_t pts) {
     return -4;
   }
 
-  err = vpx_codec_encode(&enc->ctx, img, pts, enc->frame_duration, 0, VPX_DL_REALTIME);
+  err = vpx_codec_encode(&enc->ctx, img, pts, enc->frame_duration, enc->flags, VPX_DL_REALTIME);
   if (err) {
     printf("Error: while encoding.\n");
     return -5;
@@ -104,6 +103,14 @@ int rxs_encoder_encode(rxs_encoder* enc, unsigned char* yuv420, int64_t pts) {
     }
   }
 
+  enc->flags = 0;
+
+  return 0;
+}
+
+int rxs_encoder_request_keyframe(rxs_encoder* enc) {
+  if (!enc) { return -1; } 
+  enc->flags |= VPX_EFLAG_FORCE_KF;
   return 0;
 }
 

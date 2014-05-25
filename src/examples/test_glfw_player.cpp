@@ -41,6 +41,7 @@ extern "C" {
 }
 
 #define USE_JITTER 1
+int request_keyframe = 1;
 rxs_decoder decoder;
 rxs_depacketizer depack;
 rxs_receiver rec;
@@ -355,7 +356,6 @@ static void on_vp8_packet(rxs_depacketizer* dep, uint8_t* buffer, uint32_t nbyte
   }
 
   if (had_key != 0) {
-
     if (dep->marker == 1) {
       rxs_decoder_decode(&decoder, data, pos);
     }
@@ -378,6 +378,10 @@ static void on_missing_seqnum(rxs_jitter* jit, uint16_t* seqnums, int num) {
 }
 
 static void on_frame(rxs_jitter* jit, uint8_t* data, uint32_t nbytes) {
+  if (request_keyframe == 1) {
+    request_keyframe = 0;
+    rxs_control_sender_request_keyframe(&control_sender);
+  }
   rxs_decoder_decode(&decoder, data, nbytes);
 }
 

@@ -18,7 +18,12 @@
  -----------
  - Better send buffer management (shouldn't allocate on heap
    for commands, see note at control_sender_send. )
+ - Implement rxs_control_clear() to shutdown / free mem.
 
  rxs_jitter
  ----------
  - Implement a rxs_jitter_clear() that deallocates the buffer + packets.
+
+ rxs_encoder
+ -----------
+ - Implement rxs_encoder_clear() to deallocate memory.
