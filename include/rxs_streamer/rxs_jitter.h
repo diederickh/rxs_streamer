@@ -25,6 +25,13 @@
    callback. The data you get passed into ths function can be passed directly 
    into the vpx decoder. 
 
+   Modes:
+   ------
+   
+   RXS_JITTER_MODE_NONE
+          When RXS_JITTER_MODE_NONE is used, the rxs_jitter can still be used to 
+          reconstruct 
+
    <example>
 
      rxs_jitter jit;
@@ -70,13 +77,19 @@
 #ifndef RXS_JITTER_H
 #define RXS_JITTER_H
 
+#include <rxs_streamer/rxs_reconstruct.h>
 #include <rxs_streamer/rxs_packets.h>
+
+#define JITTER_MODE_NONE 0      /* This will not create an internal buffer so all incoming packets will be directly merged into a VP8 frame if possible, but when we're missing a packet the callback will be called. */
+#define JITTER_MODE_BUFFER 1    /* When using a buffer mode we will first buffer N-packets and delay playback so you have some time to request dropped frames again. */
 
 typedef struct rxs_jitter rxs_jitter;
 typedef void(*rxs_jitter_seqnum_callback)(rxs_jitter* jit, uint16_t* seqnums, int num);     /* gets called we're missing some sequence numbers */
 typedef void(*rxs_jitter_frame_callback)(rxs_jitter* jit, uint8_t* data, uint32_t nbytes);  /* gets called when we've constructed a raw VP8 frame with encoded data */
 
 struct rxs_jitter {
+
+  rxs_reconstruct reconstruct;                                   /* used to collect packets, detect missing ones and reconstruct vp8 frames */
 
   /* buffer management */
   uint64_t npackets;                                             /* number of added packets */

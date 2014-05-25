@@ -110,8 +110,9 @@ void rxs_packet_print(rxs_packet* pkt);                                         
 int rxs_packets_init(rxs_packets* ps, int num, uint32_t nframebytes);                       /* initialize all the packets */
 int rxs_packets_clear(rxs_packets* ps);                                                     /* clears/resets the packets */
 int rxs_packets_write(rxs_packets* ps, uint8_t* data, uint32_t nbytes);                     /* write some data into the next packet */
-int rxs_packets_sort_seqnum(rxs_packets* ps);                                               /* sort on seq num */
+int rxs_packets_sort_seqnum(rxs_packet** packets, int len);                                 /* sort on seq num */
 
+int rxs_packets_get_for_timestamp(rxs_packets* ps, uint64_t timestamp, rxs_packet** result, int nmax);
 rxs_packet* rxs_packets_next(rxs_packets* ps);                                              /* returns the next packet into which you can write. */
 rxs_packet* rxs_packets_find_seqnum(rxs_packets* ps, uint16_t seqnum);                      /* finds the packet with the given seqnum */
 

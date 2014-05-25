@@ -28,6 +28,7 @@ set(rxs_streamer_sources
   ${sd}/rxs_streamer/rxs_packets.c
   ${sd}/rxs_streamer/rxs_jitter.c
   ${sd}/rxs_streamer/rxs_control.c
+  ${sd}/rxs_streamer/rxs_reconstruct.c
 )
 
 if(UNIX AND NOT APPLE)

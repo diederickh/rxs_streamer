@@ -1,4 +1,9 @@
 
+        
+ general
+ -------
+ - make user of a generic rxs_packet to represent a VP8 packet. 
+
  rxs_packetizer
  --------------
  - The buffer member is way to big then necessary at this moment. 

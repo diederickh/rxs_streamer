@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <math.h>
+#include <rxs_streamer/rxs_types.h>
 #include <rxs_streamer/rxs_jitter.h>
 #include <uv.h>
 
@@ -13,6 +14,7 @@ static int jitter_sort_seqnum(const void* a, const void* b);
 static int jitter_get_packets_for_timestamp(rxs_jitter* jit, uint64_t timestamp, rxs_packet** result, int maxPackets); /* fills the given `result` parameter with packets with the same timestamp */
 static int jitter_check_sequence_order(rxs_jitter* jit, rxs_packet** packets, int npackets); /* detects missing sequence number. when an error occurs or when it detects a missing sequence it returns a value < 0. */
 static int jitter_is_frame_complete(rxs_packet** packets, int npackets);                     /* checks if the given packets can form a complete frame. */
+static void jitter_on_missing_seqnums(rxs_reconstruct* rc, uint16_t* seqnums, int num);          /* gets called by the reconstructor when it's missing sequence numbers */
 
 /* ----------------------------------------------------------------------------- */
 
@@ -21,7 +23,6 @@ int rxs_jitter_init(rxs_jitter* jit) {
   int nsize = 24;
 
   if (!jit) { return -1; } 
-
 
   if (rxs_packets_init(&jit->packets, nsize, 1024 * 8) < 0) {
     printf("Error: cannot initialize the packets buffer for the jitter.\n");
@@ -37,7 +38,6 @@ int rxs_jitter_init(rxs_jitter* jit) {
   jit->found_keyframe = 0;
   jit->curr_pkt = NULL;
 
-
   /* allocate some space for that we use to merge the packets */
   jit->capacity = 1024 * 1024 * 4;
   jit->buffer = (uint8_t*) malloc(jit->capacity); 
@@ -45,6 +45,13 @@ int rxs_jitter_init(rxs_jitter* jit) {
     printf("Error: cannot allocate the buffer into which we write frames.\n");
     return -3;
   }
+
+  if (rxs_reconstruct_init(&jit->reconstruct) < 0) {
+    return -4;
+  }
+
+  jit->reconstruct.user = (void*)jit;
+  jit->reconstruct.on_missing_seqnum = jitter_on_missing_seqnums;
                                                      
   return 0;
 }
@@ -58,6 +65,9 @@ int rxs_jitter_add_packet(rxs_jitter* jit, rxs_packet* pkt) {
 
   if (!jit) { return -1; }
   if (!pkt) { return -2; } 
+
+  rxs_reconstruct_add_packet(&jit->reconstruct, pkt);
+  rxs_reconstruct_check_seqnum(&jit->reconstruct, pkt->seqnum);
 
   /* find a free packet */
   free_pkt = rxs_packets_next(&jit->packets);
@@ -80,7 +90,7 @@ int rxs_jitter_add_packet(rxs_jitter* jit, rxs_packet* pkt) {
 
   memcpy((char*)free_pkt->data, (void*)pkt->data, pkt->nbytes);
 
-  printf("+ %d\n", pkt->seqnum);
+  //printf("+ %d\n", pkt->seqnum);
 
   /* early check for missing packets */
   if (jit->prev_seqnum && pkt->seqnum != (jit->prev_seqnum + 1)) {
@@ -203,8 +213,6 @@ static int jitter_sort_seqnum(const void* a, const void* b) {
     return -1;
   }
 }
-
-#define RXS_MAX_SPLIT_PACKETS 8
 
 static int jitter_merge_packets(rxs_jitter* jit, uint64_t timestamp) { 
 
@@ -340,4 +348,8 @@ static int jitter_is_frame_complete(rxs_packet** packets, int npacket) {
 #endif
 
   return (packets[npacket - 1]->marker == 1) ? 0 : -3;
+}
+
+static void jitter_on_missing_seqnums(rxs_reconstruct* rc, uint16_t* seqnums, int num) {
+  printf("missing frame!\n");
 }

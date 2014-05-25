@@ -205,7 +205,7 @@ int depacketizer_unwrap_vp8(rxs_depacketizer* dep) {
     dep->received_keyframe = 1;
   }
 
-  // rxs_depacketizer_print(dep);
+  rxs_depacketizer_print(dep);
 
   if (dep->len > 0) {
     /* @todo check out of range */

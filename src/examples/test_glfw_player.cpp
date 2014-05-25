@@ -377,7 +377,6 @@ static void on_missing_seqnum(rxs_jitter* jit, uint16_t* seqnums, int num) {
 }
 
 static void on_frame(rxs_jitter* jit, uint8_t* data, uint32_t nbytes) {
-  printf("Got a VP8 frame.\n");
   rxs_decoder_decode(&decoder, data, nbytes);
 }
 

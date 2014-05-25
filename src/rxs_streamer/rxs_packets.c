@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <rxs_streamer/rxs_types.h>
 #include <rxs_streamer/rxs_packets.h>
 
 /* ----------------------------------------------------------------------------- */
@@ -185,28 +186,47 @@ rxs_packet* rxs_packets_find_seqnum(rxs_packets* ps, uint16_t seqnum){
   return NULL;
 }
 
-/* find a free packet, returns NULL when we don't have any new packets.*/
 /*
-rxs_packet* rxs_packets_find_free(rxs_packets* ps) { 
 
-  int i;
+  Fills the given rxs_packet array with packets for the given 
+  timestamp. It will return the number of found packets; not 
+  in order. 
 
-  for(i = 0; i < ps->npackets; ++i) {
-    if (ps->packets[i].is_free)  {
-      return &ps->packets[i];
+ */
+int rxs_packets_get_for_timestamp(rxs_packets* ps, 
+                                  uint64_t timestamp, 
+                                  rxs_packet** result, 
+                                  int nmax) 
+{
+  rxs_packet* pkt = NULL;
+  uint32_t i = 0;
+  uint32_t j = 0;
+
+  if (!ps) { return -1; } 
+  if (!result) { return -2; } 
+  if (!nmax) { return -3; } 
+
+
+  /* collect packets with same timestamp */
+  for (i = 0; i < ps->npackets; ++i) {
+
+    pkt = &ps->packets[i];
+    if (pkt->timestamp != timestamp) {
+      continue;
+    }
+     
+    result[j++] = pkt;
+
+    if (j >= RXS_MAX_SPLIT_PACKETS) {
+      break;
     }
   }
 
-  return NULL;
+  return j;
 }
-*/
 
-int rxs_packets_sort_seqnum(rxs_packets* ps) {
-
-  if (!ps) { return -1; } 
-  
-  qsort(ps->packets, ps->npackets, sizeof(rxs_packet), packets_sort_seqnum) ;
-
+int rxs_packets_sort_seqnum(rxs_packet** packets, int len) {
+  qsort(packets, len, sizeof(rxs_packet*), packets_sort_seqnum) ;
   return 0;
 }
 
@@ -214,8 +234,8 @@ int rxs_packets_sort_seqnum(rxs_packets* ps) {
 
 static int packets_sort_seqnum(const void* a, const void* b) {
 
-  const rxs_packet* aa = (const rxs_packet*)a;
-  const rxs_packet* bb = (const rxs_packet*)b;
+  const rxs_packet* aa = *(const rxs_packet**)a;
+  const rxs_packet* bb = *(const rxs_packet**)b;
 
 #if !defined(NDEBUG)
   /* sequence numbers are supposed to increase! */
