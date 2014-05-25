@@ -14,7 +14,9 @@ static int jitter_sort_seqnum(const void* a, const void* b);
 static int jitter_get_packets_for_timestamp(rxs_jitter* jit, uint64_t timestamp, rxs_packet** result, int maxPackets); /* fills the given `result` parameter with packets with the same timestamp */
 static int jitter_check_sequence_order(rxs_jitter* jit, rxs_packet** packets, int npackets); /* detects missing sequence number. when an error occurs or when it detects a missing sequence it returns a value < 0. */
 static int jitter_is_frame_complete(rxs_packet** packets, int npackets);                     /* checks if the given packets can form a complete frame. */
+
 static void jitter_on_missing_seqnums(rxs_reconstruct* rc, uint16_t* seqnums, int num);          /* gets called by the reconstructor when it's missing sequence numbers */
+static void jitter_on_frame(rxs_reconstruct* rc, uint8_t* data, uint32_t nbytes);                /* gets called by the reconstructor when it could merge packets into a frame */
 
 /* ----------------------------------------------------------------------------- */
 
@@ -52,6 +54,7 @@ int rxs_jitter_init(rxs_jitter* jit) {
 
   jit->reconstruct.user = (void*)jit;
   jit->reconstruct.on_missing_seqnum = jitter_on_missing_seqnums;
+  jit->reconstruct.on_frame = jitter_on_frame;
                                                      
   return 0;
 }
@@ -100,7 +103,7 @@ int rxs_jitter_add_packet(rxs_jitter* jit, rxs_packet* pkt) {
       nmissing++;
     }
     if (nmissing > 0 && jit->on_missing_seqnum) {
-      jit->on_missing_seqnum(jit, missing_seqnums, nmissing);
+      //jit->on_missing_seqnum(jit, missing_seqnums, nmissing);
     }
   }
 
@@ -224,6 +227,19 @@ static int jitter_merge_packets(rxs_jitter* jit, uint64_t timestamp) {
   
   if (!jit) { return -1; } 
 
+
+  /* --------------------------------------------------------------- */
+  {
+    /*
+    rxs_packets* recon_packets[RXS_MAX_SPLIT_PACKETS];
+    int recon_j;
+    recon_j = rxs_packets_find_timestamp(&jit->reconstruct->packets, timestamp, recon_packets, RXS_MAX_SPLIT_PACKETS);
+    printf("Recon: %d\n", recon_j);
+    */
+    rxs_reconstruct_merge_packets(&jit->reconstruct, timestamp);
+  }
+  /* --------------------------------------------------------------- */
+
   /* collect all packets with the same timestamp */
   j = jitter_get_packets_for_timestamp(jit, timestamp, packets, RXS_MAX_SPLIT_PACKETS);
   if (j <= 0) {
@@ -259,7 +275,7 @@ static int jitter_merge_packets(rxs_jitter* jit, uint64_t timestamp) {
 
   /* call the frame callback */
   if (jit->found_keyframe && jit->on_frame) {
-    jit->on_frame(jit, jit->buffer, pos);
+    //    jit->on_frame(jit, jit->buffer, pos);
   }
 
   return 0;
@@ -351,5 +367,15 @@ static int jitter_is_frame_complete(rxs_packet** packets, int npacket) {
 }
 
 static void jitter_on_missing_seqnums(rxs_reconstruct* rc, uint16_t* seqnums, int num) {
-  printf("missing frame!\n");
+  rxs_jitter* jit = (rxs_jitter*)rc->user;
+  if (jit->on_missing_seqnum) {
+    jit->on_missing_seqnum(jit, seqnums, num);
+  }
+}
+
+static void jitter_on_frame(rxs_reconstruct* rc, uint8_t* data, uint32_t nbytes) {
+  rxs_jitter* jit = (rxs_jitter*)rc->user;
+  if (jit->on_frame) {
+    jit->on_frame(jit, data, nbytes);
+  }
 }

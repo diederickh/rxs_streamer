@@ -193,7 +193,7 @@ rxs_packet* rxs_packets_find_seqnum(rxs_packets* ps, uint16_t seqnum){
   in order. 
 
  */
-int rxs_packets_get_for_timestamp(rxs_packets* ps, 
+int rxs_packets_find_timestamp(rxs_packets* ps, 
                                   uint64_t timestamp, 
                                   rxs_packet** result, 
                                   int nmax) 

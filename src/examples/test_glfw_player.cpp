@@ -312,7 +312,8 @@ static int init_player() {
   if (rxs_depacketizer_init(&depack) < 0) { return -2; } 
   if (rxs_receiver_init(&rec, 6970) < 0) { return -3; } 
   if (rxs_jitter_init(&jit) < 0) { return -4; } 
-  if (rxs_control_sender_init(&control_sender, "192.168.0.190", RXS_CONTROL_PORT) < 0) { return -5; } 
+  //if (rxs_control_sender_init(&control_sender, "192.168.0.190", RXS_CONTROL_PORT) < 0) { return -5; } 
+  if (rxs_control_sender_init(&control_sender, "192.168.0.230", RXS_CONTROL_PORT) < 0) { return -5; } 
 
   rec.on_data = on_data;
   depack.on_packet = on_vp8_packet;
