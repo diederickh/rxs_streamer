@@ -55,6 +55,7 @@ if(APPLE)
     ${extern_lib_dir}/libpng.a
     ${extern_lib_dir}/libz.a
     ${extern_lib_dir}/libglfw3.a
+    ${extern_lib_dir}/libvideocapture.a
     ${fr_corefoundation}  # uv
     ${fr_cocoa}           # uv
     ${fr_iokit}           # uv
@@ -75,6 +76,8 @@ elseif(UNIX)
     ${extern_lib_dir}/libglfw3.a
     ${extern_lib_dir}/libuv.a
     ${extern_lib_dir}/libpng.a
+    ${extern_lib_dir}/libvideocapture.a
+    udev         # libvideocapture
     GL
     X11
     Xxf86vm
@@ -116,6 +119,11 @@ install(TARGETS test_jitter DESTINATION bin)
 add_executable(test_control ${sd}/examples/test_control.c ${app_sources})
 target_link_libraries(test_control rxs_streamer ${app_libs})
 install(TARGETS test_control DESTINATION bin)
+
+# test webcam streaming
+add_executable(test_webcam_streamer ${sd}/examples/test_webcam_streamer.cpp ${app_sources})
+target_link_libraries(test_webcam_streamer rxs_streamer ${app_libs})
+install(TARGETS test_webcam_streamer DESTINATION bin)
 
 
 

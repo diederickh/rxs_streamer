@@ -95,6 +95,7 @@ int main() {
   cfg.height = HEIGHT;
   cfg.fps_num = 1;
   cfg.fps_den = FPS;
+  cfg.fmt = VPX_IMG_FMT_I420;
 
   encoder.on_packet = on_vp8_packet;
 

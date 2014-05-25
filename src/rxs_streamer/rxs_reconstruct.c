@@ -15,7 +15,9 @@ int rxs_reconstruct_init(rxs_reconstruct* rc) {
   if (!rc) { return -1; } 
 
   /* create our internal buffer */
-  if (rxs_packets_init(&rc->packets, 24, 1024 * 8) < 0) {
+  /* @todo the buffer size should be optional in reconstruct !! */
+  /* @todo the size of the packets should be optional too */
+  if (rxs_packets_init(&rc->packets, 128, 1024 * 32) < 0) {
     printf("Error: cannot initialize the packets buffer in reconstruct.\n");
     return -2;
   }

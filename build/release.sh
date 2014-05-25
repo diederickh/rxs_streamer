@@ -15,7 +15,8 @@ else
 fi
 
 #./test_vpx
-./test_glfw_player
+#./test_glfw_player
 #./test_packets
 #./test_jitter
 #./test_control
+./test_webcam_streamer

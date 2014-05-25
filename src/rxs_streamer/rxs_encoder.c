@@ -68,6 +68,7 @@ int rxs_encoder_init(rxs_encoder* enc, rxs_encoder_config* cfg) {
   enc->height = cfg->height;
   enc->fps_num = cfg->fps_num;
   enc->fps_den = cfg->fps_den;
+  enc->fmt = cfg->fmt;
 
   /* @todo - is this correct? */
   enc->frame_duration = ((double) 1.0 / cfg->fps_den) / ((double) enc->cfg.g_timebase.num / enc->cfg.g_timebase.den);
@@ -75,7 +76,7 @@ int rxs_encoder_init(rxs_encoder* enc, rxs_encoder_config* cfg) {
   return 0;
 }
 
-int rxs_encoder_encode(rxs_encoder* enc, unsigned char* yuv420, int64_t pts) {
+int rxs_encoder_encode(rxs_encoder* enc, unsigned char* pixels, int64_t pts) { 
   
   vpx_codec_err_t err;
   vpx_image_t* img = NULL;
@@ -83,9 +84,9 @@ int rxs_encoder_encode(rxs_encoder* enc, unsigned char* yuv420, int64_t pts) {
   const vpx_codec_cx_pkt_t* pkt;
 
   if (!enc) { return -1; } 
-  if (!yuv420) { return -2; } 
+  if (!pixels) { return -2; } 
   
-  img = vpx_img_wrap(&enc->img, VPX_IMG_FMT_I420, enc->width, enc->height, 1, yuv420);
+  img = vpx_img_wrap(&enc->img, enc->fmt, enc->width, enc->height, 1, pixels);
   if (!img) {
     printf("Error: cannot wrap the image.\n");
     return -4;
