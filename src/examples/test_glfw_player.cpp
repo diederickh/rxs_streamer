@@ -35,17 +35,33 @@ extern "C" {
 #  include <rxs_streamer/rxs_types.h>
 #  include <rxs_streamer/rxs_decoder.h>
 #  include <rxs_streamer/rxs_depacketizer.h>
+#  include <rxs_streamer/rxs_reconstruct.h>
 #  include <rxs_streamer/rxs_receiver.h>
 #  include <rxs_streamer/rxs_jitter.h>
 #  include <rxs_streamer/rxs_control.h>
 }
 
-#define USE_JITTER 1
+
+ /* We can use either jitter or simply a reconstructor.
+    The jitter lib will create a delayed buffer which allows
+    you to request missing packets. The reconstruct will only 
+    be used to merge frames into decodable buffers. When using
+    reconstruct you'll have less latency but decoding may 
+    show some judder jitter. 
+ */
+#define USE_JITTER 0
+#define USE_RECONSTRUCT 1      
+
+#if USE_JITTER && USE_RECONSTRUCT
+#  error "Cannot use both jitter and reconstruct."
+#endif
+
 int request_keyframe = 1;
 rxs_decoder decoder;
 rxs_depacketizer depack;
 rxs_receiver rec;
 rxs_jitter jit;
+rxs_reconstruct recon;
 rxs_control_sender control_sender;
 
 static int init_player();
@@ -54,6 +70,8 @@ static void on_vp8_image(rxs_decoder* dec, vpx_image_t* img);
 static void on_data(rxs_receiver* rec, uint8_t* buffer, uint32_t nbytes);
 static void on_missing_seqnum(rxs_jitter* jit, uint16_t* seqnums, int num);
 static void on_frame(rxs_jitter* jit, uint8_t* data, uint32_t nbytes);
+static void on_recon_missing_seqnum(rxs_reconstruct* recon, uint16_t* seqnums, int num);
+static void on_recon_frame(rxs_reconstruct* recon, uint8_t* data, uint32_t nbytes);
 
 static const char* RXP_PLAYER_VS = ""
   "#version 330\n"
@@ -315,12 +333,15 @@ static int init_player() {
   if (rxs_jitter_init(&jit) < 0) { return -4; } 
   //if (rxs_control_sender_init(&control_sender, "192.168.0.190", RXS_CONTROL_PORT) < 0) { return -5; } 
   if (rxs_control_sender_init(&control_sender, "192.168.0.230", RXS_CONTROL_PORT) < 0) { return -5; } 
+  if (rxs_reconstruct_init(&recon) < 0) { return -6; } 
 
   rec.on_data = on_data;
   depack.on_packet = on_vp8_packet;
   decoder.on_image = on_vp8_image;
   jit.on_missing_seqnum = on_missing_seqnum;
   jit.on_frame = on_frame;
+  recon.on_frame = on_recon_frame;
+  recon.on_missing_seqnum = on_recon_missing_seqnum;
   return 0;
 }
 
@@ -329,6 +350,9 @@ static void on_vp8_packet(rxs_depacketizer* dep, uint8_t* buffer, uint32_t nbyte
              we can only pass packets to the vp8 decoder after/when we receive
              a keyframe else libvpx causes the app to crash on linux. 
   */
+
+  int r = 0;
+
 #if USE_JITTER
   rxs_packet pkt;
   pkt.marker = dep->marker;
@@ -342,7 +366,33 @@ static void on_vp8_packet(rxs_depacketizer* dep, uint8_t* buffer, uint32_t nbyte
     printf("Error: cannot add a packet to the jitter buffer.\n");
     exit(1);
   }
+#elif USE_RECONSTRUCT
+  rxs_packet pkt;
+  pkt.marker = dep->marker;
+  pkt.timestamp = dep->timestamp;
+  pkt.seqnum = dep->seqnum; 
+  pkt.data = buffer;
+  pkt.nbytes = nbytes;
+  pkt.nonref = dep->N;
+  
+  if (rxs_reconstruct_add_packet(&recon, &pkt) < 0) {
+    printf("Error: cannot reconstruct!\n");
+    exit(1);
+  }
+  
+  r = rxs_reconstruct_merge_packets(&recon, pkt.timestamp);
+
+  /* @todo - add check seqnums (?) */
+  if (request_keyframe == 1) {
+    printf("--------------------- REQUEST KEYFRAME ----------------------------\n");
+    request_keyframe = 0;
+    rxs_control_sender_request_keyframe(&control_sender);
+  }
+
+  r = rxs_reconstruct_check_seqnum(&recon, pkt.seqnum);
+
 #else 
+
   static uint8_t data[1024 * 1024 * 4];
   static uint32_t pos = 0;
   static int had_key = 0;
@@ -412,4 +462,25 @@ static void on_vp8_image(rxs_decoder* dec, vpx_image_t* img) {
   glBindTexture(GL_TEXTURE_2D, tex_v);
   glPixelStorei(GL_UNPACK_ROW_LENGTH, img->stride[2]);
   glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, d_w, d_h, GL_RED, GL_UNSIGNED_BYTE, img->planes[2]);
+}
+
+/* We use rxs_reconstruct instead of rxs_jitter to reduce latency */
+static void on_recon_missing_seqnum(rxs_reconstruct* recon, 
+                                    uint16_t* seqnums, 
+                                    int num)
+{
+  printf("----------- MISSING RECONSTRUCT SEQNUMS --------------\n");
+  if (request_keyframe == 1) {
+    request_keyframe = 0;
+    rxs_control_sender_request_keyframe(&control_sender);
+  }
+}
+
+/* We use rxs_reconstruct instead of rxs_jitter to reduce latency */
+static void on_recon_frame(rxs_reconstruct* recon, 
+                           uint8_t* data, 
+                           uint32_t nbytes) 
+{
+  
+  rxs_decoder_decode(&decoder, data, nbytes);
 }

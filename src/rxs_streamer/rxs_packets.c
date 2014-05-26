@@ -211,6 +211,7 @@ int rxs_packets_find_timestamp(rxs_packets* ps,
   for (i = 0; i < ps->npackets; ++i) {
 
     pkt = &ps->packets[i];
+
     if (pkt->timestamp != timestamp) {
       continue;
     }

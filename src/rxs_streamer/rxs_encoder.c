@@ -13,7 +13,7 @@ int rxs_encoder_init(rxs_encoder* enc, rxs_encoder_config* cfg) {
   vpx_codec_err_t err;
   int flags = VPX_CODEC_CAP_OUTPUT_PARTITION; 
   //flags = VPX_CODEC_USE_OUTPUT_PARTITION;
-  //flags = 0;
+  ///flags = 0;
 
   /* validate */
   if (!enc) { return -1; } 
@@ -29,7 +29,7 @@ int rxs_encoder_init(rxs_encoder* enc, rxs_encoder_config* cfg) {
   }
 
   /* update config */
-  enc->cfg.rc_target_bitrate = 15000;
+  enc->cfg.rc_target_bitrate = 1500;
   enc->cfg.g_w = cfg->width;
   enc->cfg.g_h = cfg->height;
   enc->cfg.g_timebase.num = 1;

@@ -75,6 +75,7 @@ elseif(UNIX)
     ${extern_lib_dir}/libvpx${debug_flag}.a
     ${extern_lib_dir}/libglfw3.a
     ${extern_lib_dir}/libuv.a
+    ${extern_lib_dir}/libyuv.a  # for webcam conversion
     ${extern_lib_dir}/libpng.a
     ${extern_lib_dir}/libvideocapture.a
     udev         # libvideocapture

@@ -38,3 +38,4 @@
  ----------------
  - The number of frames that are keps in the packets buffer should
    be optional (also for rxs_jitter).
+ - See the note about the timestamp in rxs_reconstruct.c

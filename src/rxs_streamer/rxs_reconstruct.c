@@ -94,6 +94,17 @@ int rxs_reconstruct_add_packet(rxs_reconstruct* rc, rxs_packet* pkt) {
 
   memcpy((char*)free_pkt->data, (void*)pkt->data, pkt->nbytes);
 
+  /* @todo - we use a different timestamp internally (see free_pkt->timestamp 
+             a couple of lines above. When you want to use this together with 
+             rxs_reconstruct_merge_packets using pkt->timestamp, it would never
+             work because we're using diferent timestamps... 
+
+             This is ugly design an we shouldn't change the timestamp internally
+             I tink. 
+
+  */
+  pkt->timestamp = free_pkt->timestamp;
+
   return 0;
 }
 
