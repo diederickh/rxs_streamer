@@ -51,9 +51,10 @@ int rxs_stun_io_init(rxs_stun_io* io, const char* server, const char* port) {
   io->resolver.data = (void*)io;
   io->port = atoi(port);
   io->state = RXS_SIO_STATE_NONE;
+  io->sock.data = io;
   io->stun.user = (void*)io;
   io->stun.on_send = on_stun_send;
-  
+
   r = uv_getaddrinfo(io->loop, &io->resolver, 
                      on_resolved, server, port, &hints);
   
@@ -107,6 +108,9 @@ static rxs_stun_mem* find_free_mem_block(rxs_stun_io* io) {
     if (io->mem[i].is_free == 1) {
       return &io->mem[i];
     }
+    else {
+      printf(">> %d\n", io->mem[i].is_free);
+    }
   }
 
   return NULL;
@@ -132,7 +136,7 @@ static int stun_send(rxs_stun_io* io, uint8_t* data, uint32_t nbytes) {
 
   rxs_stun_mem* mem; 
   uv_udp_send_t* req;
-  uv_buf_t* buf;
+  uv_buf_t buf;
   int r;
 
   if (!io) { return -1; }
@@ -147,11 +151,6 @@ static int stun_send(rxs_stun_io* io, uint8_t* data, uint32_t nbytes) {
     return -3;
   }
 
-  buf = (uv_buf_t*)malloc(sizeof(uv_buf_t));
-  if(!buf) {
-    return -4;
-  }
-
   mem = find_free_mem_block(io);
   if (!mem) {
     printf("Error: cannot find a free memory block in rxs_stun_io. We should create more.\n");
@@ -162,7 +161,10 @@ static int stun_send(rxs_stun_io* io, uint8_t* data, uint32_t nbytes) {
 
   memcpy(mem->data, data, nbytes);
 
-  r = uv_udp_send(req, &io->sock, buf, 1, (const struct sockaddr*)&io->saddr, on_send_ready);
+  buf.base = mem->data;
+  buf.len = nbytes;
+
+  r = uv_udp_send(req, &io->sock, &buf, 1, (const struct sockaddr*)&io->saddr, on_send_ready);
   if (r != 0) {
     printf("Error: error while trying to send some stun data: %s\n", uv_strerror(r));
     return -6;
@@ -242,7 +244,7 @@ static void on_alloc(uv_handle_t* handle, size_t nbytes, uv_buf_t* buf) {
   rxs_stun_io* io = (rxs_stun_io*) handle->data;
 
   if (nbytes > RXS_STUN_IO_MEM_BLOCK_SIZE) {
-    printf("Error: rxs_stun_io needs a memory block bigger then the anticipated on.\n");
+    printf("Error: rxs_stun_io needs a memory block bigger then the anticipated on: %d > %d.\n", nbytes, RXS_STUN_IO_MEM_BLOCK_SIZE);
     exit(1);
   }
   

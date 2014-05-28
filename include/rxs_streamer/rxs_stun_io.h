@@ -5,7 +5,7 @@
 #include <rxs_streamer/rxs_stun.h>
 
 #define RXS_STUN_IO_NUM_MEM_BLOCKS 16
-#define RXS_STUN_IO_MEM_BLOCK_SIZE (16 * 1024)
+#define RXS_STUN_IO_MEM_BLOCK_SIZE (64 * 1024)
 
 #define RXS_SIO_STATE_NONE 0                          /* default state, will kickoff resolving when rxs_stun_io_init() is called. */
 #define RXS_SIO_STATE_RESOLVED 1                      /* IP of stun server is resolved. */
