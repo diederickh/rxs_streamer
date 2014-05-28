@@ -247,6 +247,8 @@ static int reconstruct_check_sequence_order(rxs_reconstruct* rc, rxs_packet** pa
     }
     rc->checked_seqnum = packets[i]->seqnum;
   }
+
+  return 0;
 }
 
 

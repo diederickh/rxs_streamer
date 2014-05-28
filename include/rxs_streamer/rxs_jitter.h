@@ -54,6 +54,20 @@
 
    </example>
 
+   Simulate packet loss
+   --------------------
+   On linux you can use `tc` to simulate packet loss:
+
+   ````sh
+
+      # add rule
+      $ tc qdisc add dev enp6s0 root netem loss 1%
+   
+      $ remove rule
+      $ tc qdisc del dev enp6s0 root netem loss 1%
+
+   ````
+
 
    References:
    -----------

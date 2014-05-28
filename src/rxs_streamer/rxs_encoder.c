@@ -29,7 +29,7 @@ int rxs_encoder_init(rxs_encoder* enc, rxs_encoder_config* cfg) {
   }
 
   /* update config */
-  enc->cfg.rc_target_bitrate = 1500;
+  enc->cfg.rc_target_bitrate = 1000;
   enc->cfg.g_w = cfg->width;
   enc->cfg.g_h = cfg->height;
   enc->cfg.g_timebase.num = 1;

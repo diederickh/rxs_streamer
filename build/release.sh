@@ -19,4 +19,5 @@ fi
 #./test_packets
 #./test_jitter
 #./test_control
-./test_webcam_streamer
+#./test_webcam_streamer
+./test_stun

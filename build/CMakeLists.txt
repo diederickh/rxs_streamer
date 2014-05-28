@@ -29,6 +29,8 @@ set(rxs_streamer_sources
   ${sd}/rxs_streamer/rxs_jitter.c
   ${sd}/rxs_streamer/rxs_control.c
   ${sd}/rxs_streamer/rxs_reconstruct.c
+  ${sd}/rxs_streamer/rxs_stun.c
+  ${sd}/rxs_streamer/rxs_stun_io.c
 )
 
 if(UNIX AND NOT APPLE)
@@ -125,6 +127,11 @@ install(TARGETS test_control DESTINATION bin)
 add_executable(test_webcam_streamer ${sd}/examples/test_webcam_streamer.cpp ${app_sources})
 target_link_libraries(test_webcam_streamer rxs_streamer ${app_libs})
 install(TARGETS test_webcam_streamer DESTINATION bin)
+
+# test stun 
+add_executable(test_stun ${sd}/examples/test_stun.c ${app_sources})
+target_link_libraries(test_stun rxs_streamer ${app_libs})
+install(TARGETS test_stun DESTINATION bin)
 
 
 

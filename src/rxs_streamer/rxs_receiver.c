@@ -41,6 +41,7 @@ int rxs_receiver_init(rxs_receiver* rec, int port) {
   rec->recv_sock.data = (void*)rec;
 
   /* let our sock handle 'listen' on the given port */
+  /* @todo - lets rename the sockaddr member to "raddr", r-eceive addr */
   r = uv_udp_bind(&rec->recv_sock, (const struct sockaddr*)&rec->saddr, 0);
   if (r != 0) {
     printf("Error: cannot bind receiver socket %s\n", uv_strerror(r));

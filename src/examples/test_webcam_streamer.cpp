@@ -43,6 +43,9 @@ char* yuv_y; /* points into yuv420p */
 char* yuv_u; /* points into yuv420p */
 char* yuv_v; /* points into yuv420p */
 
+
+uint64_t total_bytes = 0;
+uint64_t force_keyframe = 0; /* force a keyframe every `force_keyframe`, set to 0 when you don't want this */
 uint64_t time_started = 0;
 int64_t pts = 0;
 int cap_capability;
@@ -147,7 +150,9 @@ int main() {
   packer.on_packet = on_rtp_packet;
 
   /* initialize our sender (network output) */
-  if (rxs_sender_init(&sender, "0.0.0.0", 6970) < 0) {
+  //if (rxs_sender_init(&sender, "0.0.0.0", 6970) < 0) {
+  //if (rxs_sender_init(&sender, "192.168.0.194", 6970) < 0) { 
+  if (rxs_sender_init(&sender, "192.168.0.190", 6970) < 0) {  // laptop
     printf("Error: cannot init the sender.\n");
     exit(1);
   }
@@ -178,6 +183,8 @@ int main() {
 
   control_receiver.on_command = on_control_command;
 
+  time_started = uv_hrtime();
+
   while(1) { 
     cap->update();
     rxs_sender_update(&sender);
@@ -193,6 +200,14 @@ int main() {
 
 
 static void on_webcam_frame(void* pixels, int nbytes, void* user) {
+
+  static uint64_t nframes = 0;
+  
+  nframes++;
+  if (force_keyframe && force_keyframe % nframes == 0) {
+    rxs_encoder_request_keyframe(&encoder);
+  }
+
 
   int r = 0;
 
@@ -220,6 +235,8 @@ static void on_webcam_frame(void* pixels, int nbytes, void* user) {
   else {
     rxs_encoder_encode(&encoder, (unsigned char*)pixels, pts);
   }
+
+
 }
 
 static void on_vp8_packet(rxs_encoder* enc, const vpx_codec_cx_pkt_t* pkt, int64_t pts) {
@@ -252,10 +269,29 @@ static void on_vp8_packet(rxs_encoder* enc, const vpx_codec_cx_pkt_t* pkt, int64
 }
 
 static void on_rtp_packet(rxs_packetizer* vpx, uint8_t* buffer, uint32_t nbytes) {
+  uint64_t dt = (uv_hrtime() - time_started) / (1000llu * 1000llu);
+  uint64_t bitrate = 0;
+  total_bytes += (nbytes * 4); /* @todo, note were sending everyting 4 times to make handle dropped packets */
+  bitrate = total_bytes / dt;
+  printf("Bitrate: %llu\n", bitrate);
+  
+  if (rxs_sender_send(&sender, buffer, nbytes) < 0) {
+    printf("Error: cannot send rtp packet.\n");
+  }  
+
+  /* @todo -> we're sending everything 3 times ... simple congestion control */
 
   if (rxs_sender_send(&sender, buffer, nbytes) < 0) {
     printf("Error: cannot send rtp packet.\n");
   }  
+#if 0
+  if (rxs_sender_send(&sender, buffer, nbytes) < 0) {
+    printf("Error: cannot send rtp packet.\n");
+  }  
+  if (rxs_sender_send(&sender, buffer, nbytes) < 0) {
+    printf("Error: cannot send rtp packet.\n");
+  }  
+#endif
 }
 
 static void on_control_command(rxs_control_receiver* rec) {
