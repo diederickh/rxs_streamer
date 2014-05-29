@@ -279,20 +279,21 @@ static void on_send_ready(uv_udp_send_t* req, int status) {
 
 static void on_read(uv_udp_t* handle, ssize_t nread, const uv_buf_t* buf, const struct sockaddr* addr, unsigned flags) {
 
-  rxs_stun_io* io = (rxs_stun_io*)(handle->data);
-
   printf("Read some data: %ld\n", nread);
 
-  /* @todo -> set memory block free */
+  rxs_stun_io* io = (rxs_stun_io*)(handle->data);
   rxs_stun_mem* mem = find_mem_block(io, buf->base);
+
+  /* pass data into the stun parser. */
+  rxs_stun_process(&io->stun, buf->base, nread);
+
+  /* set memory block free */
   if (!mem) {
     printf("Error: Cannot set the memory block free in rxs_stun_io. Cannot find it.\n");
     exit(1);
   }
-
   mem->is_free = 1;
 
-  /* @todo -> pass data into the stun parser. */
 }
 
 /* STUN CALLBACKS                                                              */

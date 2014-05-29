@@ -39,3 +39,13 @@
  - The number of frames that are keps in the packets buffer should
    be optional (also for rxs_jitter).
  - See the note about the timestamp in rxs_reconstruct.c
+
+ rxs_stun
+ --------
+ - The static buffer readers (u32, u16) should be similar in how
+   they are used. Now reading moves the pointer, writing not. Both 
+   need to manipulate the pointer.
+ - Implement keep alive bindings (search for "seconds" in the
+   5389 RFC, it's stated that the server needs to keep info for
+   40s).
+ 
