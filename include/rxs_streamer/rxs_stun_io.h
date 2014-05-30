@@ -30,6 +30,8 @@ struct rxs_stun_io {
   char ip[17];                                         /* ip of stun server */
   rxs_stun_mem mem[RXS_STUN_IO_NUM_MEM_BLOCKS];        /* very basic memory mangement for now. */
   int state;                                           /* used to keep state; */
+  uint64_t keepalive_timeout;                          /* every keepalive_delay nanos we send a binding indication. */
+  uint64_t keepalive_delay;                            /* delay in ns. between each keep alive message */
 };
 
 int rxs_stun_io_init(rxs_stun_io* io, const char* server, const char* port);

@@ -54,6 +54,8 @@ int rxs_stun_io_init(rxs_stun_io* io, const char* server, const char* port) {
   io->sock.data = io;
   io->stun.user = (void*)io;
   io->stun.on_send = on_stun_send;
+  io->keepalive_timeout = 0;
+  io->keepalive_delay = 25 * 1000llu * 1000llu * 1000llu; 
 
   r = uv_getaddrinfo(io->loop, &io->resolver, 
                      on_resolved, server, port, &hints);
@@ -309,3 +311,7 @@ static void on_stun_send(rxs_stun* stun, uint8_t* data, uint32_t nbytes) {
     printf("Error: failed sending stun data.\n");
   }
 }
+
+
+/* INFO - DEBUG                                                                */
+/* --------------------------------------------------------------------------- */

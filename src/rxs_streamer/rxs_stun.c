@@ -9,6 +9,7 @@ static void print_cookie(uint32_t* cookie);    /* print the cookie */
 static int parse_attribute(uint8_t** buf, rxs_stun_attr* attr);
 static int parse_attr_mapped_address(uint8_t** buf, rxs_stun_attr* attr);
 static int parse_attr_xor_mapped_address(uint8_t** buf, rxs_stun_attr* attr);
+static const char* attr_type_to_string(uint16_t type);
 
 static void write_u8(uint8_t** buffer, uint8_t v);      /* note: we're moving the pointer */
 static void write_be_u16(uint8_t** buffer, uint16_t v); /* note: we're moving the pointer */
@@ -56,6 +57,10 @@ int rxs_stun_start(rxs_stun* st) {
 
   st->on_send(st, buf, 20);
 
+  return 0;
+}
+
+int rxs_stun_creating_binding_indication(rxs_stun* st) {
   return 0;
 }
 
@@ -157,7 +162,7 @@ int parse_attribute(uint8_t** buf, rxs_stun_attr* attr) {
   attr_type = read_be_u16(buf);
   attr_length = read_be_u16(buf);
 
-  printf("> stun.attribute.type: %d\n", attr_type);
+  printf("> stun.attribute.type: %d, %s\n", attr_type, attr_type_to_string(attr_type));
   printf("> stun.attribute.length: %d\n", attr_length);
 
   switch(attr_type) {
@@ -333,6 +338,14 @@ static uint32_t read_be_u32(uint8_t** buffer) {
 }
 
 /* --------------------------------------------------------------------------- */
+
+static const char* attr_type_to_string(uint16_t type) {
+  switch (type) {
+    case RXS_STUN_MAPPED_ADDRESS: { return "RXS_STUN_MAPPED_ADDRESS"; } 
+    case RXS_STUN_XOR_MAPPED_ADDRESS: { return "RXS_STUN_XOR_MAPPED_ADDRESS"; } 
+    default: { return "UNKNOWN_ATTRIBUTE_TYPE"; } 
+  };
+}
 
 static void print_id(uint32_t* id) {
   int i, j;
