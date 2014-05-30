@@ -135,6 +135,11 @@ add_executable(test_stun ${sd}/examples/test_stun.c ${app_sources})
 target_link_libraries(test_stun rxs_streamer ${app_libs})
 install(TARGETS test_stun DESTINATION bin)
 
+# test fec
+add_executable(test_fec ${sd}/examples/test_fec.c ${app_sources})
+target_link_libraries(test_fec rxs_streamer ${app_libs})
+install(TARGETS test_fec DESTINATION bin)
+
 
 
 

@@ -14,6 +14,19 @@
   forwarding. This doesn't work with all NATs; only will so called "full-cone"
   NATs.
 
+  Stun messages:
+  --------------
+  - message class: 
+    - request
+    - success response
+    - failure response
+    - indication
+   - transactions: 
+     - request/response transations
+         - response: success or error
+     - indication, one way 
+
+
   Testing:
   --------
 

@@ -106,7 +106,7 @@ int rxs_stun_process(rxs_stun* st, uint8_t* data, uint32_t nbytes) {
   msg_id[1]  = read_be_u32(&ptr);
   msg_id[2]  = read_be_u32(&ptr);
 
-   tmp = (uint8_t*)&msg_cookie;
+  tmp = (uint8_t*)&msg_cookie;
 
   switch(msg_type) {
     case RXS_STUN_BIND_RESPONSE: {
