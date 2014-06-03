@@ -20,5 +20,5 @@ fi
 #./test_jitter
 #./test_control
 #./test_webcam_streamer
-#./test_stun
-./test_fec
+./test_stun
+#./test_fec

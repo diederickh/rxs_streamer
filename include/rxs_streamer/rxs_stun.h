@@ -64,7 +64,7 @@
   - Keep Alive messages (1), http://tools.ietf.org/html/rfc5245#section-10
   - Keep Alive messages (2), http://tools.ietf.org/html/draft-ietf-rtcweb-stun-consent-freshness-00
   - Simple implementation: https://github.com/gregnietsky/stun-c/blob/master/stun.c
-
+  - Some RFC defines: https://gist.github.com/roxlu/b9174f1dc57ee67c8c32
  */
 
 #ifndef RXS_STUN_H
@@ -80,14 +80,21 @@
 #include <stdint.h>
 
 #define RXS_STUN_MAGIC_COOKIE         0x2112A442
+
+/* msg types */
 #define RXS_STUN_BIND_REQUEST         0x0001
 #define RXS_STUN_BIND_RESPONSE        0x0101
+#define RXS_STUN_BIND_ERROR_RESPONSE  0x0111
+#define RXS_STUN_BIND_INDICATION      0x0011
+
+/* attributes */
 #define RXS_STUN_MAPPED_ADDRESS       0x0001
 #define RXS_STUN_XOR_MAPPED_ADDRESS   0x0020
 
 typedef struct rxs_stun rxs_stun;
 typedef struct rxs_stun_attr rxs_stun_attr;
 typedef void(*rxs_stun_callback)(rxs_stun* s, uint8_t* data, uint32_t nbytes);
+typedef void(*rxs_stun_attr_callback)(rxs_stun* s, rxs_stun_attr* attr);
 
 struct rxs_stun_attr {
   int type;                                                            
@@ -105,6 +112,7 @@ struct rxs_stun {
   /* callback */
   void* user;
   rxs_stun_callback on_send;                                           /* gets called whenever the user needs to send some data. */
+  rxs_stun_attr_callback on_attr;                                      /* gets called when an attribute is received. */
 };
 
 int rxs_stun_init(rxs_stun* st);                                       /* sets up members */

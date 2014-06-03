@@ -61,6 +61,7 @@ int rxs_stun_start(rxs_stun* st) {
 }
 
 int rxs_stun_creating_binding_indication(rxs_stun* st) {
+  if (!st) { return -1; } 
   return 0;
 }
 
@@ -118,31 +119,38 @@ int rxs_stun_process(rxs_stun* st, uint8_t* data, uint32_t nbytes) {
 
       if(parse_attribute(&ptr, &attr) < 0) {
         printf("XXX Error: cannot parse STUN_BIND_RESPONSE.\n");
+        return -4;
       }
-      else {
-        if(attr.type == RXS_STUN_MAPPED_ADDRESS) {
 
-          /* stun header (20 bytes) */
-          write_be_u16(&send_ptr, RXS_STUN_BIND_RESPONSE);
-          write_be_u16(&send_ptr, 12);
-          write_be_u32(&send_ptr, RXS_STUN_MAGIC_COOKIE);
-          write_be_u32(&send_ptr, msg_id[0]);
-          write_be_u32(&send_ptr, msg_id[1]);
-          write_be_u32(&send_ptr, msg_id[2]);
+      if (attr.type == RXS_STUN_XOR_MAPPED_ADDRESS) {
+        if (st->on_attr) {
+          st->on_attr(st, &attr);
+        }
+      }
+      else if(attr.type == RXS_STUN_MAPPED_ADDRESS) {
 
-          /* mapped address */
-          write_be_u16(&send_ptr, RXS_STUN_MAPPED_ADDRESS);
-          write_be_u16(&send_ptr, 1);
-          write_u8(    &send_ptr, 0x00);
-          write_u8(    &send_ptr, (attr.address.sin_family == AF_INET) ? 0x01 : 0x02);
-          write_be_u16(&send_ptr, attr.address.sin_port);
-          write_be_u32(&send_ptr, attr.address.sin_addr.s_addr);
+        /* stun header (20 bytes) */
+        write_be_u16(&send_ptr, RXS_STUN_BIND_RESPONSE);
+        write_be_u16(&send_ptr, 12);
+        write_be_u32(&send_ptr, RXS_STUN_MAGIC_COOKIE);
+        write_be_u32(&send_ptr, msg_id[0]);
+        write_be_u32(&send_ptr, msg_id[1]);
+        write_be_u32(&send_ptr, msg_id[2]);
 
+        /* mapped address */
+        write_be_u16(&send_ptr, RXS_STUN_MAPPED_ADDRESS);
+        write_be_u16(&send_ptr, 1);
+        write_u8(    &send_ptr, 0x00);
+        write_u8(    &send_ptr, (attr.address.sin_family == AF_INET) ? 0x01 : 0x02);
+        write_be_u16(&send_ptr, attr.address.sin_port);
+        write_be_u32(&send_ptr, attr.address.sin_addr.s_addr);
+
+        if (st->on_send) {
           st->on_send(st, send_buf, 32);
         }
       }
       break;
-    };
+    }
     default: {
       printf("Unhandled STUN message.\n");
       return -1;

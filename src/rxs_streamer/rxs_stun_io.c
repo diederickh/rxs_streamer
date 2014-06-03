@@ -7,6 +7,7 @@
 /* --------------------------------------------------------------------------- */
 static void on_send_ready(uv_udp_send_t* req, int status);                                                              /* gets called by uv when data has been sent */      
 static void on_stun_send(rxs_stun* stun, uint8_t* data, uint32_t nbytes);                                               /* gets called by rxs_stun when we need to send some data */       
+static void on_stun_attr(rxs_stun* stun, rxs_stun_attr* attr);
 static void on_resolved(uv_getaddrinfo_t* resolver, int status, struct addrinfo* addr);                                 /* gets called when the stun server domain has been resolved. */
 static void on_read(uv_udp_t* handle, ssize_t nread, const uv_buf_t* buf, const struct sockaddr* addr, unsigned flags); /* gets called whenever there is something on the socket that we need to process/read. */
 static void on_alloc(uv_handle_t* handle, size_t nbytes, uv_buf_t* buf);                                                /* alloc data, called by uv */
@@ -54,8 +55,9 @@ int rxs_stun_io_init(rxs_stun_io* io, const char* server, const char* port) {
   io->sock.data = io;
   io->stun.user = (void*)io;
   io->stun.on_send = on_stun_send;
+  io->stun.on_attr = on_stun_attr;
   io->keepalive_timeout = 0;
-  io->keepalive_delay = 25 * 1000llu * 1000llu * 1000llu; 
+  io->keepalive_delay = 5 * 1000llu * 1000llu * 1000llu; 
 
   r = uv_getaddrinfo(io->loop, &io->resolver, 
                      on_resolved, server, port, &hints);
@@ -79,6 +81,12 @@ void rxs_stun_io_update(rxs_stun_io* io) {
 
   uv_run(io->loop, UV_RUN_NOWAIT);
 
+  uint64_t now = uv_hrtime();
+  if (io->keepalive_timeout && now > io->keepalive_timeout) {
+    printf("Timeout.\n");
+    rxs_stun_create_binding_indication(&io->stun);
+    io->keepalive_timeout = now + io->keepalive_delay;
+  }
 }
 
 int rxs_stun_io_clear(rxs_stun_io* io) {
@@ -295,7 +303,6 @@ static void on_read(uv_udp_t* handle, ssize_t nread, const uv_buf_t* buf, const 
     exit(1);
   }
   mem->is_free = 1;
-
 }
 
 /* STUN CALLBACKS                                                              */
@@ -304,6 +311,10 @@ static void on_read(uv_udp_t* handle, ssize_t nread, const uv_buf_t* buf, const 
 static void on_stun_send(rxs_stun* stun, uint8_t* data, uint32_t nbytes) {
 
   rxs_stun_io* io = (rxs_stun_io*)stun->user;
+
+  if (!stun) { return ; } 
+  if (!data) { return ; } 
+  if (!nbytes) { return; } 
   
   printf("We need to send some stun data %d bytes..\n", nbytes);
 
@@ -312,6 +323,16 @@ static void on_stun_send(rxs_stun* stun, uint8_t* data, uint32_t nbytes) {
   }
 }
 
+static void on_stun_attr(rxs_stun* stun, rxs_stun_attr* attr) {
+  printf("Got a stun attr\n");
 
-/* INFO - DEBUG                                                                */
-/* --------------------------------------------------------------------------- */
+  rxs_stun_io* io = (rxs_stun_io*)stun->user;
+
+  if (!stun) { return ; } 
+  if (!attr) { return ; } 
+
+  if (attr->type == RXS_STUN_XOR_MAPPED_ADDRESS) {
+    /* start indication timeout once we received our address */
+    io->keepalive_timeout = uv_hrtime() + io->keepalive_delay;
+  }
+}
