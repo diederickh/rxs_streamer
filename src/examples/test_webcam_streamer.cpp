@@ -100,7 +100,7 @@ int main() {
   if (cap_capability < 0) {
     printf("Warning:: I420 not supported falling back to YUY2.\n");
     cap_fmt = CA_YUYV422;
-    //enc_fmt = VPX_IMG_FMT_YUY2;
+    cap_fmt = CA_UYVY422;
     cap_capability = cap->findCapability(0, WIDTH, HEIGHT, cap_fmt);
     if (cap_capability < 0) {
       cap->listCapabilities(0);
@@ -151,8 +151,8 @@ int main() {
 
   /* initialize our sender (network output) */
   //if (rxs_sender_init(&sender, "0.0.0.0", 6970) < 0) {
-  //if (rxs_sender_init(&sender, "192.168.0.194", 6970) < 0) { 
-  if (rxs_sender_init(&sender, "192.168.0.190", 6970) < 0) {  // laptop
+  if (rxs_sender_init(&sender, "192.168.0.194", 6970) < 0) { 
+  //if (rxs_sender_init(&sender, "192.168.0.190", 6970) < 0) {  // laptop
     printf("Error: cannot init the sender.\n");
     exit(1);
   }
@@ -220,6 +220,20 @@ static void on_webcam_frame(void* pixels, int nbytes, void* user) {
   if (cap_fmt == CA_YUYV422) {
     
     r = libyuv::YUY2ToI420((const uint8*)pixels,  WIDTH * 2, 
+                           (uint8*)yuv_y, WIDTH, 
+                           (uint8*)yuv_u, WIDTH / 2, 
+                           (uint8*)yuv_v, WIDTH / 2, 
+                           WIDTH, HEIGHT);
+
+    if (r != 0) {
+      printf("Error: cannot convert to I420.\n");
+      exit(1);
+    }
+
+    rxs_encoder_encode(&encoder, (unsigned char*)yuv_y, pts);
+  }
+  else if (cap_fmt == CA_UYVY422) {
+    r = libyuv::UYVYToI420((const uint8*)pixels,  WIDTH * 2, 
                            (uint8*)yuv_y, WIDTH, 
                            (uint8*)yuv_u, WIDTH / 2, 
                            (uint8*)yuv_v, WIDTH / 2, 
