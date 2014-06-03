@@ -151,7 +151,8 @@ int main() {
 
   /* initialize our sender (network output) */
   //if (rxs_sender_init(&sender, "0.0.0.0", 6970) < 0) {
-  if (rxs_sender_init(&sender, "192.168.0.194", 6970) < 0) { 
+  //if (rxs_sender_init(&sender, "192.168.0.194", 6970) < 0) { 
+  if (rxs_sender_init(&sender, "127.0.0.1", 6970) < 0) { 
   //if (rxs_sender_init(&sender, "192.168.0.190", 6970) < 0) {  // laptop
     printf("Error: cannot init the sender.\n");
     exit(1);
@@ -208,7 +209,6 @@ static void on_webcam_frame(void* pixels, int nbytes, void* user) {
     rxs_encoder_request_keyframe(&encoder);
   }
 
-
   int r = 0;
 
   if (!time_started) {
@@ -238,7 +238,6 @@ static void on_webcam_frame(void* pixels, int nbytes, void* user) {
                            (uint8*)yuv_u, WIDTH / 2, 
                            (uint8*)yuv_v, WIDTH / 2, 
                            WIDTH, HEIGHT);
-
     if (r != 0) {
       printf("Error: cannot convert to I420.\n");
       exit(1);
@@ -294,11 +293,11 @@ static void on_rtp_packet(rxs_packetizer* vpx, uint8_t* buffer, uint32_t nbytes)
   }  
 
   /* @todo -> we're sending everything 3 times ... simple congestion control */
-
+#if 0
   if (rxs_sender_send(&sender, buffer, nbytes) < 0) {
     printf("Error: cannot send rtp packet.\n");
   }  
-#if 0
+
   if (rxs_sender_send(&sender, buffer, nbytes) < 0) {
     printf("Error: cannot send rtp packet.\n");
   }  

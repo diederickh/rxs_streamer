@@ -130,11 +130,9 @@ target_link_libraries(test_control rxs_streamer ${app_libs})
 install(TARGETS test_control DESTINATION bin)
 
 # test webcam streaming
-
-  add_executable(test_webcam_streamer ${sd}/examples/test_webcam_streamer.cpp ${app_sources})
-  target_link_libraries(test_webcam_streamer rxs_streamer ${app_libs})
-  install(TARGETS test_webcam_streamer DESTINATION bin)
-
+add_executable(test_webcam_streamer ${sd}/examples/test_webcam_streamer.cpp ${app_sources})
+target_link_libraries(test_webcam_streamer rxs_streamer ${app_libs})
+install(TARGETS test_webcam_streamer DESTINATION bin)
 
 # test stun 
 add_executable(test_stun ${sd}/examples/test_stun.c ${app_sources})
