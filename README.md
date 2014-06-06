@@ -27,3 +27,6 @@
  - [RFC 5109](http://tools.ietf.org/html/rfc5109)
  - [James S. Plank, FEC library in C](http://web.eecs.utk.edu/~plank/plank/papers/CS-08-627.html)
  - [The World Of Peer 2 Peer, great STUN info](http://en.wikibooks.org/wiki/The_World_of_Peer-to-Peer_(P2P)/Building_a_P2P_System)
+ - [FEC Frame for WebRTC](http://www.ietf.org/proceedings/86/slides/slides-86-rtcweb-1.pdf)
+ - [Handling Packet Loss in WebRTC](http://2013.ieeeicip.org/proc/pdfs/0001860.pdf)
+ - [RFC: Forward Error Correction for WebRTC using FEC FRAME](http://tools.ietf.org/html/draft-mandyam-rtcweb-fecframe-00)
