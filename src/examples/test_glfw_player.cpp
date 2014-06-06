@@ -332,7 +332,9 @@ static int init_player() {
   if (rxs_receiver_init(&rec, 6970) < 0) { return -3; } 
   if (rxs_jitter_init(&jit) < 0) { return -4; } 
   //if (rxs_control_sender_init(&control_sender, "192.168.0.190", RXS_CONTROL_PORT) < 0) { return -5; } 
-  if (rxs_control_sender_init(&control_sender, "192.168.0.230", RXS_CONTROL_PORT) < 0) { return -5; } 
+  //if (rxs_control_sender_init(&control_sender, "192.168.0.230", RXS_CONTROL_PORT) < 0) { return -5; } 
+  //if (rxs_control_sender_init(&control_sender, "192.168.0.194", RXS_CONTROL_PORT) < 0) { return -5; } 
+  if (rxs_control_sender_init(&control_sender, "127.0.0.1", RXS_CONTROL_PORT) < 0) { return -5; } 
   if (rxs_reconstruct_init(&recon) < 0) { return -6; } 
 
   rec.on_data = on_data;

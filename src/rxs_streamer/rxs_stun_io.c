@@ -84,7 +84,7 @@ void rxs_stun_io_update(rxs_stun_io* io) {
   uint64_t now = uv_hrtime();
   if (io->keepalive_timeout && now > io->keepalive_timeout) {
     printf("Timeout.\n");
-    rxs_stun_create_binding_indication(&io->stun);
+    //rxs_stun_create_binding_indication(&io->stun);
     io->keepalive_timeout = now + io->keepalive_delay;
   }
 }

@@ -42,6 +42,8 @@ endif()
 if(APPLE)
 
   find_library(fr_corefoundation CoreFoundation)
+  find_library(fr_avfoundation AVFoundation)
+  find_library(fr_coremedia CoreMedia)
   find_library(fr_cocoa Cocoa)
   find_library(fr_opengl OpenGL)
   find_library(fr_iokit IOKit)
@@ -57,12 +59,16 @@ if(APPLE)
     ${extern_lib_dir}/libpng.a
     ${extern_lib_dir}/libz.a
     ${extern_lib_dir}/libglfw3.a
-#    ${extern_lib_dir}/libvideocapture.a
+    ${extern_lib_dir}/libvideocapture.a
+    ${extern_lib_dir}/libyuv.a
     ${fr_corefoundation}  # uv
     ${fr_cocoa}           # uv
     ${fr_iokit}           # uv
     ${fr_opengl}          # glfw
     ${fr_corevideo}       # glfw
+    ${fr_avfoundation}    # videocapture
+    ${fr_coremedia}       # videocapture
+
     )
 
 elseif(UNIX)
@@ -124,11 +130,9 @@ target_link_libraries(test_control rxs_streamer ${app_libs})
 install(TARGETS test_control DESTINATION bin)
 
 # test webcam streaming
-if (NOT APPLE)
-  add_executable(test_webcam_streamer ${sd}/examples/test_webcam_streamer.cpp ${app_sources})
-  target_link_libraries(test_webcam_streamer rxs_streamer ${app_libs})
-  install(TARGETS test_webcam_streamer DESTINATION bin)
-endif()
+add_executable(test_webcam_streamer ${sd}/examples/test_webcam_streamer.cpp ${app_sources})
+target_link_libraries(test_webcam_streamer rxs_streamer ${app_libs})
+install(TARGETS test_webcam_streamer DESTINATION bin)
 
 # test stun 
 add_executable(test_stun ${sd}/examples/test_stun.c ${app_sources})
