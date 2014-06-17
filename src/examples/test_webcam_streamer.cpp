@@ -218,7 +218,7 @@ static void on_webcam_frame(void* pixels, int nbytes, void* user) {
   pts = (uv_hrtime() - time_started) / (1000llu * 1000llu);
 
   if (cap_fmt == CA_YUYV422) {
-    
+
     r = libyuv::YUY2ToI420((const uint8*)pixels,  WIDTH * 2, 
                            (uint8*)yuv_y, WIDTH, 
                            (uint8*)yuv_u, WIDTH / 2, 
@@ -248,8 +248,6 @@ static void on_webcam_frame(void* pixels, int nbytes, void* user) {
   else {
     rxs_encoder_encode(&encoder, (unsigned char*)pixels, pts);
   }
-
-
 }
 
 static void on_vp8_packet(rxs_encoder* enc, const vpx_codec_cx_pkt_t* pkt, int64_t pts) {

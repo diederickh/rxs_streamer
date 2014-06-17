@@ -105,44 +105,49 @@ add_library(rxs_streamer ${rxs_streamer_sources})
 install(TARGETS rxs_streamer ARCHIVE DESTINATION lib)
 
 # test vpx sender
-add_executable(test_vpx ${sd}/examples/test_vpx.c ${app_sources})
-target_link_libraries(test_vpx rxs_streamer ${app_libs})
-install(TARGETS test_vpx DESTINATION bin)
+# add_executable(test_vpx ${sd}/examples/test_vpx.c ${app_sources})
+# target_link_libraries(test_vpx rxs_streamer ${app_libs})
+# install(TARGETS test_vpx DESTINATION bin)
 
 # test glfw player
-add_executable(test_glfw_player ${sd}/examples/test_glfw_player.cpp ${app_sources})
-target_link_libraries(test_glfw_player rxs_streamer ${app_libs})
-install(TARGETS test_glfw_player DESTINATION bin)
+# add_executable(test_glfw_player ${sd}/examples/test_glfw_player.cpp ${app_sources})
+# target_link_libraries(test_glfw_player rxs_streamer ${app_libs})
+# install(TARGETS test_glfw_player DESTINATION bin)
 
 # test packets
-add_executable(test_packets ${sd}/examples/test_packets.c ${app_sources})
-target_link_libraries(test_packets rxs_streamer ${app_libs})
-install(TARGETS test_packets DESTINATION bin)
+# add_executable(test_packets ${sd}/examples/test_packets.c ${app_sources})
+# target_link_libraries(test_packets rxs_streamer ${app_libs})
+# install(TARGETS test_packets DESTINATION bin)
 
 # test jitter
-add_executable(test_jitter ${sd}/examples/test_jitter.c ${app_sources})
-target_link_libraries(test_jitter rxs_streamer ${app_libs})
-install(TARGETS test_jitter DESTINATION bin)
+# add_executable(test_jitter ${sd}/examples/test_jitter.c ${app_sources})
+# target_link_libraries(test_jitter rxs_streamer ${app_libs})
+# install(TARGETS test_jitter DESTINATION bin)
 
 # test control
-add_executable(test_control ${sd}/examples/test_control.c ${app_sources})
-target_link_libraries(test_control rxs_streamer ${app_libs})
-install(TARGETS test_control DESTINATION bin)
+# add_executable(test_control ${sd}/examples/test_control.c ${app_sources})
+# target_link_libraries(test_control rxs_streamer ${app_libs})
+# install(TARGETS test_control DESTINATION bin)
 
 # test webcam streaming
-add_executable(test_webcam_streamer ${sd}/examples/test_webcam_streamer.cpp ${app_sources})
-target_link_libraries(test_webcam_streamer rxs_streamer ${app_libs})
-install(TARGETS test_webcam_streamer DESTINATION bin)
+# add_executable(test_webcam_streamer ${sd}/examples/test_webcam_streamer.cpp ${app_sources})
+# target_link_libraries(test_webcam_streamer rxs_streamer ${app_libs})
+# install(TARGETS test_webcam_streamer DESTINATION bin)
 
 # test stun 
-add_executable(test_stun ${sd}/examples/test_stun.c ${app_sources})
-target_link_libraries(test_stun rxs_streamer ${app_libs})
-install(TARGETS test_stun DESTINATION bin)
+# add_executable(test_stun ${sd}/examples/test_stun.c ${app_sources})
+# target_link_libraries(test_stun rxs_streamer ${app_libs})
+# install(TARGETS test_stun DESTINATION bin)
 
 # test fec
-add_executable(test_fec ${sd}/examples/test_fec.c ${app_sources})
-target_link_libraries(test_fec rxs_streamer ${app_libs})
-install(TARGETS test_fec DESTINATION bin)
+# add_executable(test_fec ${sd}/examples/test_fec.c ${app_sources})
+# target_link_libraries(test_fec rxs_streamer ${app_libs})
+# install(TARGETS test_fec DESTINATION bin)
+
+# test nanomsg client
+add_executable(test_nanomsg_client ${sd}/examples/test_nanomsg_client.c ${app_sources})
+target_link_libraries(test_nanomsg_client rxs_streamer ${app_libs})
+install(TARGETS test_nanomsg_client DESTINATION bin)
 
 
 
