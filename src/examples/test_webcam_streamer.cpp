@@ -21,11 +21,14 @@ extern "C" {
 #  include <rxs_streamer/rxs_ivf.h>
 #  include <rxs_streamer/rxs_sender.h>
 #  include <rxs_streamer/rxs_control.h>
+#  include <rxs_streamer/rxs_signaling.h>
 #  include <libyuv.h>
 #  include <uv.h>
 }
 
+#define USE_SIGNALING 1         /* when set to 1, we try to connect to a signalign server and retrieve an IP:PORT for a specific slot */
 #define USE_IVF 0
+#define DEVICE 1
 #define WIDTH 640
 #define HEIGHT 480
 #define FPS 30
@@ -37,6 +40,7 @@ static void on_webcam_frame(void* pixels, int nbytes, void* user);
 static void on_vp8_packet(rxs_encoder* enc, const vpx_codec_cx_pkt_t* pkt, int64_t pts);
 static void on_rtp_packet(rxs_packetizer* vpx, uint8_t* buffer, uint32_t nbytes);
 static void on_control_command(rxs_control_receiver* rec);
+static void on_slot_info(rxs_sigclient* client, uint32_t slot, char* ip, uint16_t port);
 
 char* yuv420p;
 char* yuv_y; /* points into yuv420p */
@@ -57,6 +61,8 @@ rxs_packetizer packer;
 rxs_sender sender;
 rxs_ivf ivf;
 rxs_control_receiver control_receiver; /* used to request handle keyframe requests */
+rxs_sigclient sigclient;
+int got_remote_ip = 0; /* when using signaling we wait to update the sender until we received the remote IP:PORT. */
 
 int main() {
   printf("\n\ntest_video_streamer\n\n");
@@ -87,7 +93,7 @@ int main() {
   }
 
 #if 0
-  if (cap->listCapabilities(0) < 0) {
+  if (cap->listCapabilities(DEVICE) < 0) {
     printf("Error: couldn't list capabilities for device 0.\n");
     exit(1);
   }
@@ -96,20 +102,23 @@ int main() {
   /* check if the capture device support the format we want */
   cap_fmt = CA_YUV420P;
   enc_fmt = VPX_IMG_FMT_I420;
-  cap_capability = cap->findCapability(0, WIDTH, HEIGHT, cap_fmt);
+  cap_capability = cap->findCapability(DEVICE, WIDTH, HEIGHT, cap_fmt);
   if (cap_capability < 0) {
     printf("Warning:: I420 not supported falling back to YUY2.\n");
     cap_fmt = CA_YUYV422;
-    cap_fmt = CA_UYVY422;
-    cap_capability = cap->findCapability(0, WIDTH, HEIGHT, cap_fmt);
+    //cap_fmt = CA_UYVY422;
+    cap_capability = cap->findCapability(DEVICE, WIDTH, HEIGHT, cap_fmt);
+
+    cap_capability = 161; /* there is something silly going on with findCapability and CA_YUYV422 */
+
     if (cap_capability < 0) {
-      cap->listCapabilities(0);
+      //cap->listCapabilities(0);
       printf("Error: no capture device found that is supports what we need.\n");
       exit(1);
     }
   }
 
-  cap->listCapabilities(0);
+  //cap->listCapabilities(DEVICE);
   printf("Using: %d\n", cap_capability);
 
   /* open the device using the capability we found.*/
@@ -149,14 +158,27 @@ int main() {
   }
   packer.on_packet = on_rtp_packet;
 
+#if USE_SIGNALING
+
+  sigclient.on_slot_info = on_slot_info;
+
+  if (rxs_sigclient_init(&sigclient, "tcp://home.roxlu.com:5995") < 0) {
+    printf("Error: cannot initialize the sigclient.\n");
+    exit(1);
+  }
+
+  if (rxs_sigclient_retrieve_address(&sigclient, 5) < 0) {
+    printf("Error: failed to request client info from sigserv.\n");
+    exit(1);
+  }
+
+#else
   /* initialize our sender (network output) */
-  //if (rxs_sender_init(&sender, "0.0.0.0", 6970) < 0) {
-  //if (rxs_sender_init(&sender, "192.168.0.194", 6970) < 0) { 
   if (rxs_sender_init(&sender, "127.0.0.1", 6970) < 0) { 
-  //if (rxs_sender_init(&sender, "192.168.0.190", 6970) < 0) {  // laptop
     printf("Error: cannot init the sender.\n");
     exit(1);
   }
+#endif  
 
 #if USE_IVF
   /* create our ivf muxer */
@@ -188,17 +210,25 @@ int main() {
 
   while(1) { 
     cap->update();
-    rxs_sender_update(&sender);
+
     rxs_control_receiver_update(&control_receiver);
+
+#if USE_SIGNALING
+    rxs_sigclient_update(&sigclient);
+    if (got_remote_ip == 1) {
+      rxs_sender_update(&sender);
+    }
+#else 
+   rxs_sender_update(&sender); 
+#endif
+
   }
 
   if (cap) {
     delete cap;
     cap = NULL;
   }
-  printf("\n");
 }
-
 
 static void on_webcam_frame(void* pixels, int nbytes, void* user) {
 
@@ -284,8 +314,15 @@ static void on_rtp_packet(rxs_packetizer* vpx, uint8_t* buffer, uint32_t nbytes)
   uint64_t bitrate = 0;
   total_bytes += (nbytes * 4); /* @todo, note were sending everyting 4 times to make handle dropped packets */
   bitrate = total_bytes / dt;
-  printf("Bitrate: %llu\n", bitrate);
-  
+
+#if USE_SIGNALING
+  /* start sending once we know the IP:PORT of the receiver */
+  if (got_remote_ip == 0) {
+    return;
+  }
+#endif
+
+
   if (rxs_sender_send(&sender, buffer, nbytes) < 0) {
     printf("Error: cannot send rtp packet.\n");
   }  
@@ -303,6 +340,7 @@ static void on_rtp_packet(rxs_packetizer* vpx, uint8_t* buffer, uint32_t nbytes)
     printf("Error: cannot send rtp packet.\n");
   }  
 #endif
+
 }
 
 static void on_control_command(rxs_control_receiver* rec) {
@@ -333,3 +371,15 @@ static void on_signal(int s) {
   exit(0);
 }
 
+static void on_slot_info(rxs_sigclient* client, uint32_t slot, char* ip, uint16_t port) {
+  printf("Got remote IP: %d, IP: %s\n", slot, ip);
+
+  /* initialize the sender with the IP:PORT of the we received from the signaling server. */
+  if (got_remote_ip == 0) {
+    if (rxs_sender_init(&sender, ip, port) < 0) { 
+      printf("Error: cannot init the sender.\n");
+      exit(1);
+    }
+    got_remote_ip = 1;
+  }
+}

@@ -31,6 +31,7 @@ set(rxs_streamer_sources
   ${sd}/rxs_streamer/rxs_reconstruct.c
   ${sd}/rxs_streamer/rxs_stun.c
   ${sd}/rxs_streamer/rxs_stun_io.c
+  ${sd}/rxs_streamer/rxs_signaling.c
 )
 
 if(UNIX AND NOT APPLE)
@@ -61,6 +62,10 @@ if(APPLE)
     ${extern_lib_dir}/libglfw3.a
     ${extern_lib_dir}/libvideocapture.a
     ${extern_lib_dir}/libyuv.a
+    ${extern_lib_dir}/libnanomsg.a  # for signaling (not using this)
+    ${extern_lib_dir}/libpicomsg.a  # for signaling
+    ${extern_lib_dir}/libpack.a     # for signaling
+    ${extern_lib_dir}/libhiredis.a     # for signaling
     ${fr_corefoundation}  # uv
     ${fr_cocoa}           # uv
     ${fr_iokit}           # uv
@@ -110,9 +115,9 @@ install(TARGETS rxs_streamer ARCHIVE DESTINATION lib)
 # install(TARGETS test_vpx DESTINATION bin)
 
 # test glfw player
-# add_executable(test_glfw_player ${sd}/examples/test_glfw_player.cpp ${app_sources})
-# target_link_libraries(test_glfw_player rxs_streamer ${app_libs})
-# install(TARGETS test_glfw_player DESTINATION bin)
+add_executable(test_glfw_player ${sd}/examples/test_glfw_player.cpp ${app_sources})
+target_link_libraries(test_glfw_player rxs_streamer ${app_libs})
+install(TARGETS test_glfw_player DESTINATION bin)
 
 # test packets
 # add_executable(test_packets ${sd}/examples/test_packets.c ${app_sources})
@@ -145,9 +150,29 @@ install(TARGETS rxs_streamer ARCHIVE DESTINATION lib)
 # install(TARGETS test_fec DESTINATION bin)
 
 # test nanomsg client
-add_executable(test_nanomsg_client ${sd}/examples/test_nanomsg_client.c ${app_sources})
-target_link_libraries(test_nanomsg_client rxs_streamer ${app_libs})
-install(TARGETS test_nanomsg_client DESTINATION bin)
+# add_executable(test_nanomsg_client ${sd}/examples/test_nanomsg_client.c ${app_sources})
+# target_link_libraries(test_nanomsg_client rxs_streamer ${app_libs})
+# install(TARGETS test_nanomsg_client DESTINATION bin)
+
+# test nanomsg server
+# add_executable(test_nanomsg_server ${sd}/examples/test_nanomsg_server.c ${app_sources})
+# target_link_libraries(test_nanomsg_server rxs_streamer ${app_libs})
+# install(TARGETS test_nanomsg_server DESTINATION bin)
+
+# test signal server
+# add_executable(test_signal_server ${sd}/examples/test_signal_server.c ${app_sources})
+# target_link_libraries(test_signal_server rxs_streamer ${app_libs})
+# install(TARGETS test_signal_server DESTINATION bin)
+ 
+# test signal client
+# add_executable(test_signal_client ${sd}/examples/test_signal_client.c ${app_sources})
+# target_link_libraries(test_signal_client rxs_streamer ${app_libs})
+# install(TARGETS test_signal_client DESTINATION bin)
+
+# test signaling using redis
+add_executable(test_signal_redis ${sd}/examples/test_signal_redis.c ${app_sources})
+target_link_libraries(test_signal_redis rxs_streamer ${app_libs})
+install(TARGETS test_signal_redis DESTINATION bin)
 
 
 

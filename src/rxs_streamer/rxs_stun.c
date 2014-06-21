@@ -44,6 +44,12 @@ int rxs_stun_clear(rxs_stun* st) {
 int rxs_stun_start(rxs_stun* st) {
   if (!st) { return -1; } 
 
+  return rxs_stun_create_binding_request(st);
+}
+
+int rxs_stun_create_binding_request(rxs_stun* st) {
+  if (!st) { return -1; } 
+
   /* bind request */
   uint8_t buf[20];
   uint8_t* ptr = buf;
@@ -283,8 +289,12 @@ int parse_attr_xor_mapped_address(uint8_t** buf, rxs_stun_attr* attr) {
   printf("> stun.attribute.ip: %d.%d.%d.%d\n", addr[0], addr[1], addr[2], addr[3]);
 
   attr->type = RXS_STUN_XOR_MAPPED_ADDRESS;
+  attr->address.sin_family = AF_INET;
+  attr->address.sin_port = port;
+  attr->address.sin_addr.s_addr = ip;
 
   /* @todo - do something with the stun result ^.^ */
+  return 0;
 }
 
 /* --------------------------------------------------------------------------- */

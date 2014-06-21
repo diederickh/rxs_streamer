@@ -13,6 +13,8 @@
 typedef struct rxs_stun_io rxs_stun_io;
 typedef struct rxs_stun_mem rxs_stun_mem;
 
+typedef void(*rxs_stun_io_address_cb)(rxs_stun_io* io, struct sockaddr_in* addr); /* gets called when we got a reply from the stun server and we know our public IP:PORT */
+
 struct rxs_stun_mem {
   char data[RXS_STUN_IO_MEM_BLOCK_SIZE];              /* used to store the data */
   int is_free;                                        /* is set to 1 when this memory block isn't used */
@@ -32,6 +34,10 @@ struct rxs_stun_io {
   int state;                                           /* used to keep state; */
   uint64_t keepalive_timeout;                          /* every keepalive_delay nanos we send a binding indication. */
   uint64_t keepalive_delay;                            /* delay in ns. between each keep alive message */
+
+  /* callback */
+  void* user;
+  rxs_stun_io_address_cb on_address;                   /* simply dispatches the on_attr call from rxs_stun. */
 };
 
 int rxs_stun_io_init(rxs_stun_io* io, const char* server, const char* port);
