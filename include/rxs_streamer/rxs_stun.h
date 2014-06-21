@@ -120,5 +120,6 @@ int rxs_stun_start(rxs_stun* st);                                      /* starts
 int rxs_stun_clear(rxs_stun* st);                                      /* clears up any used memory and resets members */
 int rxs_stun_process(rxs_stun* st, uint8_t* data, uint32_t nbytes);    /* whenever you receive some data, pass it into this function so we can process it */
 int rxs_stun_create_binding_indication(rxs_stun* st);                  /* will create a binding indication and calls the on_send() */ 
+int rxs_stun_create_binding_request(rxs_stun* st);                     /* will create a binding request, can be used for keep alives */
 
 #endif

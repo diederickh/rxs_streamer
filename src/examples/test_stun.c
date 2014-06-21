@@ -4,6 +4,7 @@
 #include <rxs_streamer/rxs_stun_io.h>
 
 static void sigh(int s);
+static void on_address(rxs_stun_io* io, struct sockaddr_in* addr);
 
 rxs_stun_io stun_io;
 
@@ -17,6 +18,8 @@ int main() {
     exit(1);
   }
 
+  stun_io.on_address = on_address;
+
   while(1) {
     rxs_stun_io_update(&stun_io);
   }
@@ -28,4 +31,9 @@ int main() {
 static void sigh(int s) {
   printf("\n\nSIGNALLED!\n\n");
   exit(0);
+}
+
+
+static void on_address(rxs_stun_io* io, struct sockaddr_in* addr) {
+  printf("Got an address: %04X:%d.\n", addr->sin_addr.s_addr, addr->sin_port);
 }

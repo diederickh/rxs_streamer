@@ -57,7 +57,7 @@ int rxs_stun_io_init(rxs_stun_io* io, const char* server, const char* port) {
   io->stun.on_send = on_stun_send;
   io->stun.on_attr = on_stun_attr;
   io->keepalive_timeout = 0;
-  io->keepalive_delay = 5 * 1000llu * 1000llu * 1000llu; 
+  io->keepalive_delay = 40 * 1000llu * 1000llu * 1000llu; 
 
   r = uv_getaddrinfo(io->loop, &io->resolver, 
                      on_resolved, server, port, &hints);
@@ -83,8 +83,8 @@ void rxs_stun_io_update(rxs_stun_io* io) {
 
   uint64_t now = uv_hrtime();
   if (io->keepalive_timeout && now > io->keepalive_timeout) {
-    printf("Timeout.\n");
     //rxs_stun_create_binding_indication(&io->stun);
+    rxs_stun_create_binding_request(&io->stun); 
     io->keepalive_timeout = now + io->keepalive_delay;
   }
 }
@@ -254,7 +254,7 @@ static void on_alloc(uv_handle_t* handle, size_t nbytes, uv_buf_t* buf) {
   rxs_stun_io* io = (rxs_stun_io*) handle->data;
 
   if (nbytes > RXS_STUN_IO_MEM_BLOCK_SIZE) {
-    printf("Error: rxs_stun_io needs a memory block bigger then the anticipated on: %d > %d.\n", nbytes, RXS_STUN_IO_MEM_BLOCK_SIZE);
+    printf("Error: rxs_stun_io needs a memory block bigger then the anticipated on: %zu > %d.\n", nbytes, RXS_STUN_IO_MEM_BLOCK_SIZE);
     exit(1);
   }
   
@@ -289,13 +289,13 @@ static void on_send_ready(uv_udp_send_t* req, int status) {
 
 static void on_read(uv_udp_t* handle, ssize_t nread, const uv_buf_t* buf, const struct sockaddr* addr, unsigned flags) {
 
-  printf("Read some data: %ld\n", nread);
+  printf("Read some data in stun io.: %ld\n", nread);
 
   rxs_stun_io* io = (rxs_stun_io*)(handle->data);
   rxs_stun_mem* mem = find_mem_block(io, buf->base);
 
   /* pass data into the stun parser. */
-  rxs_stun_process(&io->stun, buf->base, nread);
+  rxs_stun_process(&io->stun, (uint8_t*)buf->base, nread);
 
   /* set memory block free */
   if (!mem) {
@@ -334,5 +334,9 @@ static void on_stun_attr(rxs_stun* stun, rxs_stun_attr* attr) {
   if (attr->type == RXS_STUN_XOR_MAPPED_ADDRESS) {
     /* start indication timeout once we received our address */
     io->keepalive_timeout = uv_hrtime() + io->keepalive_delay;
+  }
+
+  if (io->on_address) {
+    io->on_address(io, &attr->address);
   }
 }

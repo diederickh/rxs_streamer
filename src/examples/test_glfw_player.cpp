@@ -39,18 +39,21 @@ extern "C" {
 #  include <rxs_streamer/rxs_receiver.h>
 #  include <rxs_streamer/rxs_jitter.h>
 #  include <rxs_streamer/rxs_control.h>
+#  include <rxs_streamer/rxs_stun_io.h>
+#  include <rxs_streamer/rxs_signaling.h>
 }
 
+/* We can use either jitter or simply a reconstructor.
+   The jitter lib will create a delayed buffer which allows
+   you to request missing packets. The reconstruct will only 
+   be used to merge frames into decodable buffers. When using
+   reconstruct you'll have less latency but decoding may 
+   show some judder jitter. 
+*/
 
- /* We can use either jitter or simply a reconstructor.
-    The jitter lib will create a delayed buffer which allows
-    you to request missing packets. The reconstruct will only 
-    be used to merge frames into decodable buffers. When using
-    reconstruct you'll have less latency but decoding may 
-    show some judder jitter. 
- */
 #define USE_JITTER 0
 #define USE_RECONSTRUCT 1      
+#define USE_SIGNALING 1
 
 #if USE_JITTER && USE_RECONSTRUCT
 #  error "Cannot use both jitter and reconstruct."
@@ -63,6 +66,9 @@ rxs_receiver rec;
 rxs_jitter jit;
 rxs_reconstruct recon;
 rxs_control_sender control_sender;
+rxs_stun_io stun_io;     /* only used when USE_SIGNALING is 1 */
+//rxs_sigclient sigclient; /* only used when USE_SIGNALING is 1 */
+//int got_remote_ip = 0;   /* when using signaling, we wait with initializing our receiver */
 
 static int init_player();
 static void on_vp8_packet(rxs_depacketizer* dep, uint8_t* buffer, uint32_t nbytes);
@@ -72,6 +78,7 @@ static void on_missing_seqnum(rxs_jitter* jit, uint16_t* seqnums, int num);
 static void on_frame(rxs_jitter* jit, uint8_t* data, uint32_t nbytes);
 static void on_recon_missing_seqnum(rxs_reconstruct* recon, uint16_t* seqnums, int num);
 static void on_recon_frame(rxs_reconstruct* recon, uint8_t* data, uint32_t nbytes);
+static void on_stun_address(rxs_stun_io* io, struct sockaddr_in* addr);
 
 static const char* RXP_PLAYER_VS = ""
   "#version 330\n"
@@ -192,7 +199,13 @@ int main() {
     glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+#if USE_SIGNALING
+    //    rxs_sigclient_update(&sigclient);
+    rxs_stun_io_update(&stun_io);
+#else
     rxs_receiver_update(&rec);
+#endif
+
     rxs_jitter_update(&jit);
 
     /* drawing */
@@ -300,7 +313,7 @@ static int setup_opengl() {
   At this moment we only support YUYV420P video and here
   we create the 3 textures for each Y,U and V layer. Note 
 
- */
+*/
 
 #if 0
 static void on_video_frame(rxp_player* player, rxp_packet* pkt) {
@@ -329,8 +342,29 @@ static void on_video_frame(rxp_player* player, rxp_packet* pkt) {
 static int init_player() {
   if (rxs_decoder_init(&decoder) < 0) {  return -1;  }
   if (rxs_depacketizer_init(&depack) < 0) { return -2; } 
-  if (rxs_receiver_init(&rec, 6970) < 0) { return -3; } 
   if (rxs_jitter_init(&jit) < 0) { return -4; } 
+
+#if USE_SIGNALING
+
+  stun_io.on_address = on_stun_address;
+
+  if (rxs_stun_io_init(&stun_io, "stun.l.google.com","19302") < 0) {
+    printf("Error: cannot initialize the stun io.\n");
+    return -10;
+  }
+  /*
+  if (rxs_sigclient_init(&sigclient, "tcp://home.roxlu.com:5995") < 0) {
+    printf("Error: cannot initialize the sigclient.\n");
+    return -11;
+  }
+  */
+
+#else
+  if (rxs_receiver_init(&rec, 6970) < 0) { 
+    return -3; 
+  } 
+#endif
+
   //if (rxs_control_sender_init(&control_sender, "192.168.0.190", RXS_CONTROL_PORT) < 0) { return -5; } 
   //if (rxs_control_sender_init(&control_sender, "192.168.0.230", RXS_CONTROL_PORT) < 0) { return -5; } 
   //if (rxs_control_sender_init(&control_sender, "192.168.0.194", RXS_CONTROL_PORT) < 0) { return -5; } 
@@ -349,8 +383,8 @@ static int init_player() {
 
 static void on_vp8_packet(rxs_depacketizer* dep, uint8_t* buffer, uint32_t nbytes) {
   /* @todo - we need to implement some logic in the on_vp8_packet function
-             we can only pass packets to the vp8 decoder after/when we receive
-             a keyframe else libvpx causes the app to crash on linux. 
+     we can only pass packets to the vp8 decoder after/when we receive
+     a keyframe else libvpx causes the app to crash on linux. 
   */
 
   int r = 0;
@@ -485,4 +519,17 @@ static void on_recon_frame(rxs_reconstruct* recon,
 {
   
   rxs_decoder_decode(&decoder, data, nbytes);
+}
+
+/* 
+   When using signaling (USE_SIGNALING), this will be called once we've 
+   received our public IP:PORT
+*/
+static void on_stun_address(rxs_stun_io* io, struct sockaddr_in* addr) {
+  printf("Yep, we got our public address.\n");
+  /*
+  if (rxs_sigclient_store_address(&sigclient, 5, addr->sin_addr.s_addr, addr->sin_port) < 0) {
+    printf("Error: cannot notify our address.\n");
+  }
+  */
 }
