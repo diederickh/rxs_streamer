@@ -62,9 +62,6 @@ if(APPLE)
     ${extern_lib_dir}/libglfw3.a
     ${extern_lib_dir}/libvideocapture.a
     ${extern_lib_dir}/libyuv.a
-    ${extern_lib_dir}/libnanomsg.a  # for signaling (not using this)
-    ${extern_lib_dir}/libpicomsg.a  # for signaling
-    ${extern_lib_dir}/libpack.a     # for signaling
     ${extern_lib_dir}/libhiredis.a     # for signaling
     ${fr_corefoundation}  # uv
     ${fr_cocoa}           # uv
@@ -148,26 +145,6 @@ install(TARGETS test_glfw_player DESTINATION bin)
 # add_executable(test_fec ${sd}/examples/test_fec.c ${app_sources})
 # target_link_libraries(test_fec rxs_streamer ${app_libs})
 # install(TARGETS test_fec DESTINATION bin)
-
-# test nanomsg client
-# add_executable(test_nanomsg_client ${sd}/examples/test_nanomsg_client.c ${app_sources})
-# target_link_libraries(test_nanomsg_client rxs_streamer ${app_libs})
-# install(TARGETS test_nanomsg_client DESTINATION bin)
-
-# test nanomsg server
-# add_executable(test_nanomsg_server ${sd}/examples/test_nanomsg_server.c ${app_sources})
-# target_link_libraries(test_nanomsg_server rxs_streamer ${app_libs})
-# install(TARGETS test_nanomsg_server DESTINATION bin)
-
-# test signal server
-# add_executable(test_signal_server ${sd}/examples/test_signal_server.c ${app_sources})
-# target_link_libraries(test_signal_server rxs_streamer ${app_libs})
-# install(TARGETS test_signal_server DESTINATION bin)
- 
-# test signal client
-# add_executable(test_signal_client ${sd}/examples/test_signal_client.c ${app_sources})
-# target_link_libraries(test_signal_client rxs_streamer ${app_libs})
-# install(TARGETS test_signal_client DESTINATION bin)
 
 # test signaling using redis
 add_executable(test_signal_redis ${sd}/examples/test_signal_redis.c ${app_sources})
