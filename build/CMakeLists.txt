@@ -88,6 +88,7 @@ elseif(UNIX)
     ${extern_lib_dir}/libyuv.a  # for webcam conversion
     ${extern_lib_dir}/libpng.a
     ${extern_lib_dir}/libvideocapture.a
+    ${extern_lib_dir}/libhiredis.a     # for signaling
     udev         # libvideocapture
     GL
     X11
