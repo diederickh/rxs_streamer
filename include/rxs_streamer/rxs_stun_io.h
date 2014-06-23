@@ -13,7 +13,8 @@
 typedef struct rxs_stun_io rxs_stun_io;
 typedef struct rxs_stun_mem rxs_stun_mem;
 
-typedef void(*rxs_stun_io_address_cb)(rxs_stun_io* io, struct sockaddr_in* addr); /* gets called when we got a reply from the stun server and we know our public IP:PORT */
+//typedef void(*rxs_stun_io_address_cb)(rxs_stun_io* io, struct sockaddr_in* addr); /* gets called when we got a reply from the stun server and we know our public IP:PORT */
+typedef void(*rxs_stun_io_address_cb)(rxs_stun_io* io, const char* ip, uint16_t port); /* gets called when we got a reply from the stun server and we know our public IP:PORT */
 
 struct rxs_stun_mem {
   char data[RXS_STUN_IO_MEM_BLOCK_SIZE];              /* used to store the data */

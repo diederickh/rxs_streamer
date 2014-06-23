@@ -207,7 +207,7 @@ int rxs_reconstruct_merge_packets(rxs_reconstruct* rc, uint64_t timestamp) {
 int rxs_reconstruct_is_frame_complete(rxs_packet** packets, int npackets) {
 #if !defined(NDEBUG)
   if (!packets) { return -1; } 
-  if (!npackets || packets < 1) { return -2; } 
+  if (!npackets || npackets < 1) { return -2; } 
 #endif
 
   return (packets[npackets - 1]->marker == 1) ? 0 : -3;
@@ -229,7 +229,7 @@ static int reconstruct_check_sequence_order(rxs_reconstruct* rc, rxs_packet** pa
   int r = 0;
 
 #if !defined(NDEBUG)
-  if (!jit) { return -1; } 
+  if (!rc) { return -1; } 
   if (!npackets) { return -2; } 
   if (!packets) { return -3; } 
 #endif

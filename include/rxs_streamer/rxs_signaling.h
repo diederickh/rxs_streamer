@@ -36,6 +36,7 @@ struct rxs_signal {
   int slot;
   void* user;
   rxs_signal_cb on_address;
+  int connected;
 };
 
 int rxs_signal_init(rxs_signal* s, const char* ip, uint16_t port);

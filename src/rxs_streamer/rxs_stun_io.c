@@ -324,9 +324,11 @@ static void on_stun_send(rxs_stun* stun, uint8_t* data, uint32_t nbytes) {
 }
 
 static void on_stun_attr(rxs_stun* stun, rxs_stun_attr* attr) {
-  printf("Got a stun attr\n");
-
+  int i;
+  unsigned char addr[16] = { 0 } ;
+  unsigned char straddr[16] = { 0 };
   rxs_stun_io* io = (rxs_stun_io*)stun->user;
+  uint32_t ip = attr->address.sin_addr.s_addr;
 
   if (!stun) { return ; } 
   if (!attr) { return ; } 
@@ -337,6 +339,17 @@ static void on_stun_attr(rxs_stun* stun, rxs_stun_attr* attr) {
   }
 
   if (io->on_address) {
-    io->on_address(io, &attr->address);
+
+    for(i = 0; i < 4; ++i) {
+      addr[i] = (ip >> (i * 8)) & 0xFF;
+    }
+
+    sprintf((char*)straddr, 
+            "%d.%d.%d.%d",
+            addr[0], addr[1], addr[2], addr[3]);
+
+    io->on_address(io, 
+                   (const char*)straddr, 
+                   attr->address.sin_port);
   }
 }

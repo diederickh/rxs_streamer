@@ -14,6 +14,7 @@ int rxs_signal_init(rxs_signal* s, const char* ip, uint16_t port) {
   if (!ip)   { return -2; } 
   if (!port) { return -3; } 
 
+  s->connected = 0;
   s->loop = (uv_loop_t*)uv_default_loop();
   if (!s->loop) {
     printf("Error: cannot get default uv loop for signaling.\n");
@@ -30,6 +31,8 @@ int rxs_signal_init(rxs_signal* s, const char* ip, uint16_t port) {
     printf("Error: something went wrong when trying to connect to redis: %s\n", s->redis->errstr);
     return -6;
   }
+
+
 
   /* @todo - add error checks */
   redisLibuvAttach(s->redis, s->loop);
@@ -63,9 +66,8 @@ int rxs_signal_store_address(rxs_signal* s, int slot, const char* ip, uint16_t p
   if (!ip)   { return -2; } 
   if (!port) { return -3; } 
 
-  redisAsyncCommand(s->redis, NULL, NULL, "HMSET signal:%d ip %s port %d", slot, ip, port);
   redisAsyncCommand(s->redis, NULL, NULL, "PUBLISH slot%d address:%s:%d", slot, ip, port);
-
+  redisAsyncCommand(s->redis, NULL, NULL, "HMSET signal:%d ip %s port %d", slot, ip, port);
   return 0;
 }
 
@@ -73,7 +75,12 @@ int rxs_signal_store_address(rxs_signal* s, int slot, const char* ip, uint16_t p
 
 static void connect_callback(const struct redisAsyncContext* c, int status) {
   /* @todo check status */
-  printf("Connected to signaling server..\n");
+  if (status < 0) {
+    printf("Error: cannot connect: %s\n", c->errstr);
+  }
+  else {
+    printf("Connected to signaling server..: %d\n", status);
+  }
 }
 
 static void disconnect_callback(const struct redisAsyncContext* c, int status) {

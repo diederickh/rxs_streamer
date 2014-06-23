@@ -228,7 +228,7 @@ int parse_attr_mapped_address(uint8_t** buf, rxs_stun_attr* attr) {
   printf("> stun.attribute.type: MAPPED-ADDRESS\n");
   printf("> stun.attribute.family: %s (%02X)\n", (family == 0x01) ? "IP4" : "IP6", family);
   printf("> stun.attribute.port: %d\n", port);
-  printf("> stun.attribute.ip: %d.%d.%d.%d\n", addr[0], addr[1], addr[2], addr[3]);
+  printf("> stun.attribute.ip: %d.%d.%d.%d  (%u)\n", addr[0], addr[1], addr[2], addr[3], ip);
 
   attr->type = RXS_STUN_MAPPED_ADDRESS;
   attr->address.sin_family = AF_INET;
@@ -286,7 +286,7 @@ int parse_attr_xor_mapped_address(uint8_t** buf, rxs_stun_attr* attr) {
   }
 
   printf("> stun.attribute.port: %d\n", port);
-  printf("> stun.attribute.ip: %d.%d.%d.%d\n", addr[0], addr[1], addr[2], addr[3]);
+  printf("> stun.attribute.ip: %d.%d.%d.%d, %u\n", addr[0], addr[1], addr[2], addr[3], ip);
 
   attr->type = RXS_STUN_XOR_MAPPED_ADDRESS;
   attr->address.sin_family = AF_INET;

@@ -15,7 +15,7 @@ else
 fi
 
 #./test_vpx
-#./test_glfw_player
+./test_glfw_player
 #./test_packets
 #./test_jitter
 #./test_control
@@ -26,4 +26,4 @@ fi
 #./test_nanomsg_server
 #./test_signal_server
 #./test_signal_client
-./test_signal_redis
+#./test_signal_redis
