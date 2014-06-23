@@ -67,6 +67,7 @@ rxs_jitter jit;
 rxs_reconstruct recon;
 rxs_control_sender control_sender;
 rxs_stun_io stun_io;     /* only used when USE_SIGNALING is 1 */
+rxs_signal sig_pub;  /* publisher for signal system */
 //rxs_sigclient sigclient; /* only used when USE_SIGNALING is 1 */
 //int got_remote_ip = 0;   /* when using signaling, we wait with initializing our receiver */
 
@@ -352,6 +353,12 @@ static int init_player() {
     printf("Error: cannot initialize the stun io.\n");
     return -10;
   }
+
+  if (rxs_signal_init(&sig_pub, "home.roxlu.com", 6370) < 0) {
+    printf("Error: cannot init signal publisher.\n");
+    return -11;
+  }
+
   /*
   if (rxs_sigclient_init(&sigclient, "tcp://home.roxlu.com:5995") < 0) {
     printf("Error: cannot initialize the sigclient.\n");
@@ -527,6 +534,9 @@ static void on_recon_frame(rxs_reconstruct* recon,
 */
 static void on_stun_address(rxs_stun_io* io, struct sockaddr_in* addr) {
   printf("Yep, we got our public address.\n");
+  if (rxs_signal_store_address(&sig_pub, 5, addr->sin_addr.s_addr, addr->sin_port) < 0) {
+    printf("Error whilte trying to store an address.\n");
+  }
   /*
   if (rxs_sigclient_store_address(&sigclient, 5, addr->sin_addr.s_addr, addr->sin_port) < 0) {
     printf("Error: cannot notify our address.\n");
