@@ -45,5 +45,4 @@ int rxs_signal_update(rxs_signal* s);
 int rxs_signal_store_address(rxs_signal* s, int slot, const char* ip, uint16_t port);
 int rxs_signal_retrieve_address(rxs_signal* s, int slot);
 
-
 #endif

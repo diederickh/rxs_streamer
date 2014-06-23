@@ -40,7 +40,8 @@ static void on_webcam_frame(void* pixels, int nbytes, void* user);
 static void on_vp8_packet(rxs_encoder* enc, const vpx_codec_cx_pkt_t* pkt, int64_t pts);
 static void on_rtp_packet(rxs_packetizer* vpx, uint8_t* buffer, uint32_t nbytes);
 static void on_control_command(rxs_control_receiver* rec);
-static void on_slot_info(rxs_sigclient* client, uint32_t slot, char* ip, uint16_t port);
+//static void on_slot_info(rxs_sigclient* client, uint32_t slot, char* ip, uint16_t port);
+static void on_address(rxs_signal* s, char* ip, uint16_t port);
 
 char* yuv420p;
 char* yuv_y; /* points into yuv420p */
@@ -61,7 +62,8 @@ rxs_packetizer packer;
 rxs_sender sender;
 rxs_ivf ivf;
 rxs_control_receiver control_receiver; /* used to request handle keyframe requests */
-rxs_sigclient sigclient;
+//rxs_sigclient sigclient;
+rxs_signal sig_sub; /* signal subscriber, used to get IP:PORT information when using signaling  */
 int got_remote_ip = 0; /* when using signaling we wait to update the sender until we received the remote IP:PORT. */
 
 int main() {
@@ -160,18 +162,27 @@ int main() {
 
 #if USE_SIGNALING
 
-  sigclient.on_slot_info = on_slot_info;
+  //sigclient.on_slot_info = on_slot_info;
 
-  if (rxs_sigclient_init(&sigclient, "tcp://home.roxlu.com:5995") < 0) {
+  //if (rxs_sigclient_init(&sigclient, "tcp://home.roxlu.com:5995") < 0) {
+  if (rxs_signal_init(&sig_sub, "home.roxlu.com", 6379) < 0) {
     printf("Error: cannot initialize the sigclient.\n");
     exit(1);
   }
 
+  if (rxs_signal_subscribe(&sig_sub, 5) < 0) {
+    printf("Error: cannot subscribe to signal server.\n");
+    exit(1);
+  }
+
+  sig_sub.on_address = on_address;
+
+  /*
   if (rxs_sigclient_retrieve_address(&sigclient, 5) < 0) {
     printf("Error: failed to request client info from sigserv.\n");
     exit(1);
   }
-
+  */
 #else
   /* initialize our sender (network output) */
   if (rxs_sender_init(&sender, "127.0.0.1", 6970) < 0) { 
@@ -214,7 +225,8 @@ int main() {
     rxs_control_receiver_update(&control_receiver);
 
 #if USE_SIGNALING
-    rxs_sigclient_update(&sigclient);
+    //rxs_sigclient_update(&sigclient);
+    rxs_signal_update(&sig_sub);
     if (got_remote_ip == 1) {
       rxs_sender_update(&sender);
     }
@@ -371,8 +383,9 @@ static void on_signal(int s) {
   exit(0);
 }
 
-static void on_slot_info(rxs_sigclient* client, uint32_t slot, char* ip, uint16_t port) {
-  printf("Got remote IP: %d, IP: %s\n", slot, ip);
+static void on_address(rxs_signal* s, char* ip, uint16_t port) {
+  //static void on_slot_info(rxs_sigclient* client, uint32_t slot, char* ip, uint16_t port) {
+  printf("Got remote IP: %s\n", ip);
 
   /* initialize the sender with the IP:PORT of the we received from the signaling server. */
   if (got_remote_ip == 0) {

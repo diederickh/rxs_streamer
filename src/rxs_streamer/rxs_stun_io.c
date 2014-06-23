@@ -15,6 +15,10 @@ static rxs_stun_mem* find_free_mem_block(rxs_stun_io* io);                      
 static rxs_stun_mem* find_mem_block(rxs_stun_io* io, char* dataptr);                                                    /* finds the memory block for which the data member has the given dataptr address */
 static int stun_send(rxs_stun_io* io, uint8_t* data, uint32_t nbytes);
 
+/* begin - TMP - @todo - testing listening sock */
+static void on_listen_read(uv_udp_t* handle, ssize_t nread, const uv_buf_t* buf, const struct sockaddr* addr, unsigned flags); 
+/* end - TMP - @todo - testing listening sock */
+
 /* --------------------------------------------------------------------------- */
 
 int rxs_stun_io_init(rxs_stun_io* io, const char* server, const char* port) {
@@ -58,6 +62,8 @@ int rxs_stun_io_init(rxs_stun_io* io, const char* server, const char* port) {
   io->stun.on_attr = on_stun_attr;
   io->keepalive_timeout = 0;
   io->keepalive_delay = 40 * 1000llu * 1000llu * 1000llu; 
+
+  io->listening = 0; /* @todo - testing listening */
 
   r = uv_getaddrinfo(io->loop, &io->resolver, 
                      on_resolved, server, port, &hints);
@@ -324,11 +330,12 @@ static void on_stun_send(rxs_stun* stun, uint8_t* data, uint32_t nbytes) {
 }
 
 static void on_stun_attr(rxs_stun* stun, rxs_stun_attr* attr) {
-  int i;
+  int i,r;
   unsigned char addr[16] = { 0 } ;
   unsigned char straddr[16] = { 0 };
   rxs_stun_io* io = (rxs_stun_io*)stun->user;
   uint32_t ip = attr->address.sin_addr.s_addr;
+  struct sockaddr_in saddr;
 
   if (!stun) { return ; } 
   if (!attr) { return ; } 
@@ -338,18 +345,58 @@ static void on_stun_attr(rxs_stun* stun, rxs_stun_attr* attr) {
     io->keepalive_timeout = uv_hrtime() + io->keepalive_delay;
   }
 
-  if (io->on_address) {
+  /* convert address to string */
+  for(i = 0; i < 4; ++i) {
+    addr[i] = (ip >> (i * 8)) & 0xFF;
+  }
+  sprintf((char*)straddr, "%d.%d.%d.%d", addr[0], addr[1], addr[2], addr[3]);
 
-    for(i = 0; i < 4; ++i) {
-      addr[i] = (ip >> (i * 8)) & 0xFF;
+
+  /* begin - TMP - @todo - testing a listening sock */
+  if (io->listening == 0) {
+    printf("Starting to listen.\n");
+
+    r = uv_ip4_addr((const char*)straddr, attr->address.sin_port, &saddr);
+    if (r != 0) {
+      printf("Error: cannot make ip4 addr.: %s\n", uv_strerror(r));
+      return;
     }
 
-    sprintf((char*)straddr, 
-            "%d.%d.%d.%d",
-            addr[0], addr[1], addr[2], addr[3]);
+    r = uv_udp_init(io->loop, &io->listen_sock);
+    if (r != 0) {
+      printf("Error: cannot start listening sock: %s\n", uv_strerror(r));
+      return;
+    }
+
+    r = uv_udp_bind(&io->listen_sock, (const struct sockaddr*)&saddr, 0);
+    if (r != 0) {
+      printf("Error: cannot bind listening sock: %s\n", uv_strerror(r));
+      return;
+    }
+
+    r = uv_udp_recv_start(&io->listen_sock, on_alloc, on_listen_read);
+    if (r != 0) {
+      printf("Error: cannot start receiving data on listening sock: %s\n", uv_strerror(r));
+      return;
+    }
+
+    io->listening = 1;    
+  }
+  /* end - TMP - @todo - end testing sock. */
+
+  if (io->on_address) {
 
     io->on_address(io, 
                    (const char*)straddr, 
                    attr->address.sin_port);
+
+    
   }
 }
+
+
+/* begin - TMP - @todo - testing listening sock */
+static void on_listen_read(uv_udp_t* handle, ssize_t nread, const uv_buf_t* buf, const struct sockaddr* addr, unsigned flags) {
+  printf("Got video data!\n");
+}
+/* end - TMP - @todo - testing listening sock */

@@ -39,6 +39,11 @@ struct rxs_stun_io {
   /* callback */
   void* user;
   rxs_stun_io_address_cb on_address;                   /* simply dispatches the on_attr call from rxs_stun. */
+
+  /* begin - test listening */
+  int listening;
+  uv_udp_t listen_sock;
+  /* end - test listening */
 };
 
 int rxs_stun_io_init(rxs_stun_io* io, const char* server, const char* port);
