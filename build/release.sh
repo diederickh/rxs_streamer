@@ -15,11 +15,11 @@ else
 fi
 
 #./test_vpx
-./test_glfw_player
+#./test_glfw_player
 #./test_packets
 #./test_jitter
 #./test_control
-#./test_webcam_streamer
+./test_webcam_streamer
 #./test_stun
 #./test_fec
 #./test_nanomsg_client

@@ -10,9 +10,9 @@ static int reconstruct_check_sequence_order(rxs_reconstruct* rc, rxs_packet** pa
 
 /* ----------------------------------------------------------------------------- */
 
-int rxs_reconstruct_init(rxs_reconstruct* rc) { 
+int rxs_reconstruct_init(rxs_reconstruct* rc) {
 
-  if (!rc) { return -1; } 
+  if (!rc) { return -1; }
 
   /* create our internal buffer */
   /* @todo the buffer size should be optional in reconstruct !! */
@@ -24,7 +24,7 @@ int rxs_reconstruct_init(rxs_reconstruct* rc) {
 
   /* allocate some space for that we use to merge the packets */
   rc->capacity = 1024 * 1024 * 4;
-  rc->buffer = (uint8_t*) malloc(rc->capacity); 
+  rc->buffer = (uint8_t*) malloc(rc->capacity);
   if (!rc->buffer) {
     printf("Error: cannot allocate the buffer into which we write frames in reconstruct.\n");
     return -3;
@@ -39,13 +39,13 @@ int rxs_reconstruct_init(rxs_reconstruct* rc) {
 
 int rxs_reconstruct_clear(rxs_reconstruct* rc) {
   if (!rc) { return -1; }
-  
+
   rc->prev_seqnum = 0;
   rc->checked_seqnum = 0;
   rc->capacity = 0;
   rc->found_keyframe = 0;
-  
-  if (rc->buffer) { 
+
+  if (rc->buffer) {
     free(rc->buffer);
     rc->buffer = NULL;
   }
@@ -69,9 +69,9 @@ int rxs_reconstruct_clear(rxs_reconstruct* rc) {
 int rxs_reconstruct_add_packet(rxs_reconstruct* rc, rxs_packet* pkt) {
 
   rxs_packet* free_pkt = NULL;
-  
-  if (!rc) { return -1; } 
-  if (!pkt) { return -2; } 
+
+  if (!rc) { return -1; }
+  if (!pkt) { return -2; }
 
   /* find a free packet */
   free_pkt = rxs_packets_next(&rc->packets);
@@ -94,13 +94,13 @@ int rxs_reconstruct_add_packet(rxs_reconstruct* rc, rxs_packet* pkt) {
 
   memcpy((char*)free_pkt->data, (void*)pkt->data, pkt->nbytes);
 
-  /* @todo - we use a different timestamp internally (see free_pkt->timestamp 
-             a couple of lines above. When you want to use this together with 
+  /* @todo - we use a different timestamp internally (see free_pkt->timestamp
+             a couple of lines above. When you want to use this together with
              rxs_reconstruct_merge_packets using pkt->timestamp, it would never
-             work because we're using diferent timestamps... 
+             work because we're using diferent timestamps...
 
              This is ugly design an we shouldn't change the timestamp internally
-             I tink. 
+             I tink.
 
   */
   pkt->timestamp = free_pkt->timestamp;
@@ -110,7 +110,7 @@ int rxs_reconstruct_add_packet(rxs_reconstruct* rc, rxs_packet* pkt) {
 
 int rxs_reconstruct_check_seqnum(rxs_reconstruct* rc, uint16_t seqnum) {
 
-  static uint16_t missing_seqnums[RXS_MAX_MISSING_PACKETS]; 
+  static uint16_t missing_seqnums[RXS_MAX_MISSING_PACKETS];
   int i;
   uint32_t nmissing = 0;
 
@@ -143,19 +143,19 @@ int rxs_reconstruct_merge_packets(rxs_reconstruct* rc, uint64_t timestamp) {
   rxs_packet* packets[RXS_MAX_SPLIT_PACKETS];
   int npackets = 0; /* number of found packets for given timestamp */
 
-  if (!rc) { return -1; } 
+  if (!rc) { return -1; }
 
   /* get packets for timestamp */
   npackets = rxs_packets_find_timestamp(&rc->packets, timestamp, packets, RXS_MAX_SPLIT_PACKETS);
   if (npackets <= 0) {
-    return -2; 
+    return -2;
   }
 
   /* sort on sequence number */
   if (rxs_packets_sort_seqnum(packets, npackets) < 0) {
     return -4;
   };
-  
+
   if (reconstruct_check_sequence_order(rc, packets, npackets) < 0) {
     printf("Warning: packet sequence numbers are invalid in reconstruct.\n");
     /* @todo - should we "abort" here, or continue */
@@ -166,6 +166,7 @@ int rxs_reconstruct_merge_packets(rxs_reconstruct* rc, uint64_t timestamp) {
     return -5;
   }
 
+  printf("Got a complete frame in packets!\n");
   /* merge rtp vp8 partitions/packets */
   for (i = 0; i < npackets; ++i) {
 
@@ -191,12 +192,12 @@ int rxs_reconstruct_merge_packets(rxs_reconstruct* rc, uint64_t timestamp) {
   return 0;
 }
 
-/* 
-   This function will check if the packets in the given 
+/*
+   This function will check if the packets in the given
    array can be used to create a complete VP8 frame. The
    logic is simple: the last last packet should have the
-   marker bit set. We assume that the sequence numbers are 
-   correctly sorted and no packets are missing. 
+   marker bit set. We assume that the sequence numbers are
+   correctly sorted and no packets are missing.
 
    It will return 0 when the frame is complete else < 0
 
@@ -206,10 +207,11 @@ int rxs_reconstruct_merge_packets(rxs_reconstruct* rc, uint64_t timestamp) {
 */
 int rxs_reconstruct_is_frame_complete(rxs_packet** packets, int npackets) {
 #if !defined(NDEBUG)
-  if (!packets) { return -1; } 
-  if (!npackets || npackets < 1) { return -2; } 
+  if (!packets) { return -1; }
+  if (!npackets || npackets < 1) { return -2; }
 #endif
 
+  printf("Checking for frame completion!\n");
   return (packets[npackets - 1]->marker == 1) ? 0 : -3;
 }
 
@@ -217,7 +219,7 @@ int rxs_reconstruct_is_frame_complete(rxs_packet** packets, int npackets) {
 /* ----------------------------------------------------------------------------- */
 
 /*
-  This will check if the sequence order in the given array is correct. 
+  This will check if the sequence order in the given array is correct.
 
   IMPORTANT: make sure that the packets are already sorted by sequence order.
 
@@ -229,29 +231,29 @@ static int reconstruct_check_sequence_order(rxs_reconstruct* rc, rxs_packet** pa
   int r = 0;
 
 #if !defined(NDEBUG)
-  if (!rc) { return -1; } 
-  if (!npackets) { return -2; } 
-  if (!packets) { return -3; } 
+  if (!rc) { return -1; }
+  if (!npackets) { return -2; }
+  if (!packets) { return -3; }
 #endif
 
+  printf("Checking seqnum order:\n");
 
   for (i = 0; i < npackets; ++i) {
+
+    printf("  i:%d  Before if: %d packets[i]->seqnum: %d\n",i, rc->checked_seqnum, packets[i]->seqnum);
     if (rc->checked_seqnum && (rc->checked_seqnum + 1) != packets[i]->seqnum) {
       r = -1;
+      printf("Okay, we're in here.. nothing happens\n");
       //printf("~~ missing: %d\n", jit->checked_seqnum +1 );
 
       /* @todo  this is where a packet is really lost and we
-                should probably ask the sender for a new 
-                keyframe. 
+                should probably ask the sender for a new
+                keyframe.
       */
     }
     rc->checked_seqnum = packets[i]->seqnum;
+    printf("  i:%d  After if: %d\n", i, rc->checked_seqnum);
   }
 
   return 0;
 }
-
-
-
-  
-

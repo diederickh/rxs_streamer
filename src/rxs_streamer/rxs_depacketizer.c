@@ -15,7 +15,7 @@ static uint16_t depacketizer_read_picture_id(uint8_t* buf);
 
 int rxs_depacketizer_init(rxs_depacketizer* dep) {
 
-  if (!dep) { return -1; } 
+  if (!dep) { return -1; }
 
   dep->pos = 0;
   dep->received_keyframe = 0;
@@ -25,7 +25,7 @@ int rxs_depacketizer_init(rxs_depacketizer* dep) {
 
 int rxs_depacketizer_reset(rxs_depacketizer* dep) {
 
-  if (!dep) { return -1; } 
+  if (!dep) { return -1; }
 
   dep->version = 0;
   dep->padding = 0;
@@ -58,9 +58,9 @@ int rxs_depacketizer_reset(rxs_depacketizer* dep) {
 
 int rxs_depacketizer_unwrap(rxs_depacketizer* dep, uint8_t* buffer, int64_t nbytes) {
 
-  if (!dep) { return -1; } 
-  if (!buffer) { return -2; } 
-  if (!nbytes) { return -3; } 
+  if (!dep) { return -1; }
+  if (!buffer) { return -2; }
+  if (!nbytes) { return -3; }
 
   if (!rxs_depacketizer_reset(dep) < 0) {
     printf("Error: cannot reset packetizer.\n");
@@ -85,7 +85,7 @@ int rxs_depacketizer_unwrap(rxs_depacketizer* dep, uint8_t* buffer, int64_t nbyt
 
 /* ----------------------------------------------------------------------------- */
 /*
-  depacketizer unwrap rtp needs to check buffer size. 
+  depacketizer unwrap rtp needs to check buffer size.
 
 */
 
@@ -104,7 +104,7 @@ int depacketizer_unwrap_rtp(rxs_depacketizer* dep) {
   dep->csrc_count = (dep->buf[0] & 0x0F);
   dep->buf++;
   dep->len--;
-  
+
   /* marker and payload type */
   dep->marker = (dep->buf[0] & 0x80) >> 7;
   dep->pt     = (dep->buf[0] & 0x7F);
@@ -130,13 +130,13 @@ int depacketizer_unwrap_rtp(rxs_depacketizer* dep) {
     exit(1);
   }
 
-#if 0  
+#if 0
   printf("<< version: %d, padding: %d, extension; %d, csrc: %d, marker: %d, payload: %d, "
          "seqnum: %d, timestamp: %d, ssrc: %04X | ",
-         dep->version, 
-         dep->padding, 
-         dep->extension, 
-         dep->csrc_count, 
+         dep->version,
+         dep->padding,
+         dep->extension,
+         dep->csrc_count,
          dep->marker,
          dep->pt,
          dep->seqnum,
@@ -151,7 +151,7 @@ int depacketizer_unwrap_rtp(rxs_depacketizer* dep) {
 /* @todo vp8 unwrapping needs to check lengths */
 int depacketizer_unwrap_vp8(rxs_depacketizer* dep) {
 
-  if (!dep) { return -1; } 
+  if (!dep) { return -1; }
 
   /* VP8-Payload-Descriptor obligatory header*/
   dep->X = (dep->buf[0] & 0x80) >> 7;                     /* Extended control bits present */
@@ -215,14 +215,14 @@ int depacketizer_unwrap_vp8(rxs_depacketizer* dep) {
 
   /* @todo:  we added a received_keyframe flag because libvpx crashes
              on linux when you give it any data before a first keyframe.
-             though this kind of logic should be handled by the user, 
-             not in here. 
+             though this kind of logic should be handled by the user,
+             not in here.
   */
 
   if (dep->on_packet) {
     dep->on_packet(dep, dep->buffer, dep->len);
   }
-            
+
   /*
   if (dep->marker == 1) {
     if (dep->received_keyframe) {
@@ -243,10 +243,10 @@ int depacketizer_unwrap_vp8(rxs_depacketizer* dep) {
 }
 
 void rxs_depacketizer_print(rxs_depacketizer* dep) {
-  if (!dep) { return ; } 
+  if (!dep) { return ; }
 
   printf(" X: %d, N: %d, S: %d, PID: %d "
-         "I: %d, L: %d, T: %d, K: %d, PictureID: %d, seqnum: %d\n", 
+         "I: %d, L: %d, T: %d, K: %d, PictureID: %d, seqnum: %d\n",
          dep->X,
          dep->N,
          dep->S,
@@ -260,9 +260,9 @@ void rxs_depacketizer_print(rxs_depacketizer* dep) {
   );
 }
 
-/* @todo - verify if the picture id reading is correct 
+/* @todo - verify if the picture id reading is correct
    Check: https://github.com/alfredh/baresip/blob/98bf08bdcf2edd9d397f32650a8bfe62186fbecf/modules/vpx/decode.c
-   this seems to be correct for 2 byte encoded pic 
+   this seems to be correct for 2 byte encoded pic
 */
 
 static uint16_t depacketizer_read_picture_id(uint8_t* buf) {
@@ -273,7 +273,7 @@ static uint16_t depacketizer_read_picture_id(uint8_t* buf) {
 }
 
 static uint16_t depacketizer_read_u16(uint8_t* buf) {
-  uint16_t result; 
+  uint16_t result;
   uint8_t* dest = (uint8_t*)&result;
   dest[0] = buf[1];
   dest[1] = buf[0];
@@ -281,7 +281,7 @@ static uint16_t depacketizer_read_u16(uint8_t* buf) {
 }
 
 static uint32_t depacketizer_read_u32(uint8_t* buf) {
-  uint32_t result; 
+  uint32_t result;
   uint8_t* dest = (uint8_t*)&result;
   dest[0] = buf[3];
   dest[1] = buf[2];

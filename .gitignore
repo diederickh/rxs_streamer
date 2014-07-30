@@ -22,4 +22,5 @@
 *.x86_64
 *.hex
 
+build.release
 LOGBOOK.org

@@ -11,15 +11,15 @@ void print_vpx_packet(const vpx_codec_cx_pkt_t* pkt);
 int rxs_encoder_init(rxs_encoder* enc, rxs_encoder_config* cfg) {
 
   vpx_codec_err_t err;
-  int flags = VPX_CODEC_CAP_OUTPUT_PARTITION; 
+  int flags = VPX_CODEC_CAP_OUTPUT_PARTITION;
   //flags = VPX_CODEC_USE_OUTPUT_PARTITION;
   ///flags = 0;
 
   /* validate */
-  if (!enc) { return -1; } 
-  if (!cfg) { return -2; } 
-  if (!cfg->width) { return -3; } 
-  if (!cfg->height) { return -4; } 
+  if (!enc) { return -1; }
+  if (!cfg) { return -2; }
+  if (!cfg->width) { return -3; }
+  if (!cfg->height) { return -4; }
 
   /* initialize the codec */
   err = vpx_codec_enc_config_default(vpx_cx_interface, &enc->cfg, 0);
@@ -29,7 +29,7 @@ int rxs_encoder_init(rxs_encoder* enc, rxs_encoder_config* cfg) {
   }
 
   /* update config */
-  enc->cfg.rc_target_bitrate = 1000;
+  enc->cfg.rc_target_bitrate = 200;
   enc->cfg.g_w = cfg->width;
   enc->cfg.g_h = cfg->height;
   enc->cfg.g_timebase.num = 1;
@@ -76,16 +76,16 @@ int rxs_encoder_init(rxs_encoder* enc, rxs_encoder_config* cfg) {
   return 0;
 }
 
-int rxs_encoder_encode(rxs_encoder* enc, unsigned char* pixels, int64_t pts) { 
-  
+int rxs_encoder_encode(rxs_encoder* enc, unsigned char* pixels, int64_t pts) {
+
   vpx_codec_err_t err;
   vpx_image_t* img = NULL;
   vpx_codec_iter_t iter = NULL;
   const vpx_codec_cx_pkt_t* pkt;
 
-  if (!enc) { return -1; } 
-  if (!pixels) { return -2; } 
-  
+  if (!enc) { return -1; }
+  if (!pixels) { return -2; }
+
   img = vpx_img_wrap(&enc->img, enc->fmt, enc->width, enc->height, 1, pixels);
   if (!img) {
     printf("Error: cannot wrap the image.\n");
@@ -97,7 +97,7 @@ int rxs_encoder_encode(rxs_encoder* enc, unsigned char* pixels, int64_t pts) {
     printf("Error: while encoding.\n");
     return -5;
   }
-  
+
   while ( (pkt = vpx_codec_get_cx_data(&enc->ctx, &iter)) ) {
     if (pkt->kind == VPX_CODEC_CX_FRAME_PKT) {
       enc->on_packet(enc, pkt, pts);
@@ -110,7 +110,7 @@ int rxs_encoder_encode(rxs_encoder* enc, unsigned char* pixels, int64_t pts) {
 }
 
 int rxs_encoder_request_keyframe(rxs_encoder* enc) {
-  if (!enc) { return -1; } 
+  if (!enc) { return -1; }
   enc->flags |= VPX_EFLAG_FORCE_KF;
   return 0;
 }
@@ -119,8 +119,8 @@ int rxs_encoder_request_keyframe(rxs_encoder* enc) {
 
 void print_vpx_packet(const vpx_codec_cx_pkt_t* pkt) {
 
-  if (!pkt) { return ; } 
-  
+  if (!pkt) { return ; }
+
   if (pkt->data.frame.partition_id == 0) {
     printf("-------\n");
   }

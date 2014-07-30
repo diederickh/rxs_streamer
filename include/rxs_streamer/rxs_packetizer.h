@@ -12,7 +12,7 @@ typedef struct rxs_packetizer rxs_packetizer;
 typedef void (*rxs_packetizer_callback)(rxs_packetizer* rxs, uint8_t* buffer, uint32_t nbytes); /* is called when we have a rtp packet ready. */
 
 struct rxs_packetizer {
-  
+
   /* RTP header */
   uint8_t version;                             /* the version, 2 */
   uint8_t padding;                             /* padding bit in rtp header */
@@ -30,12 +30,12 @@ struct rxs_packetizer {
   uint8_t nonref;
   uint8_t pid;                                 /* partition id */
   int16_t picture_id;                          /* PictureID field */
-  
+
   uint32_t dx;                                 /* write index into rxs_packetiser.dx */
   uint32_t frame_dx;                           /* index into the vpx_codec_cx_pkt_t.data.frame.buf */
   int64_t frame_len;                           /* number of read bytes from the frame/vpx packet */
   int64_t frame_size;                          /* payload size for the current packet */
-  
+
   uint8_t buffer[RXS_PACK_BUFFER_SIZE];        /* large buffer into which we store the current rtp packet */
 
   /* callback */

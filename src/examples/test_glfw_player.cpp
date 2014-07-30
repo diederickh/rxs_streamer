@@ -1,16 +1,16 @@
 /*
- 
-  BASIC GLFW + GLXW WINDOW AND OPENGL SETUP 
+
+  BASIC GLFW + GLXW WINDOW AND OPENGL SETUP
   ------------------------------------------
   See https://gist.github.com/roxlu/6698180 for the latest version of the example.
- 
+
 */
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
- 
+
 #if defined(__linux) || defined(_WIN32)
-#  include <GLXW/glxw.h>
+#include <GLXW/glxw.h>
 #endif
 
 #define GLFW_INCLUDE_GLCOREARB
@@ -22,7 +22,7 @@
 #define ROXLU_USE_FONT
 #define ROXLU_IMPLEMENTATION
 #include <tinylib.h>
- 
+
 void button_callback(GLFWwindow* win, int bt, int action, int mods);
 void cursor_callback(GLFWwindow* win, double x, double y);
 void key_callback(GLFWwindow* win, int key, int scancode, int action, int mods);
@@ -32,31 +32,33 @@ void resize_callback(GLFWwindow* window, int width, int height);
 
 /* ---------------------- begin: player specific ------------------------ */
 extern "C" {
-#  include <rxs_streamer/rxs_types.h>
-#  include <rxs_streamer/rxs_decoder.h>
-#  include <rxs_streamer/rxs_depacketizer.h>
-#  include <rxs_streamer/rxs_reconstruct.h>
-#  include <rxs_streamer/rxs_receiver.h>
-#  include <rxs_streamer/rxs_jitter.h>
-#  include <rxs_streamer/rxs_control.h>
-#  include <rxs_streamer/rxs_stun_io.h>
-#  include <rxs_streamer/rxs_signaling.h>
+#include <rxs_streamer/rxs_types.h>
+#include <rxs_streamer/rxs_decoder.h>
+#include <rxs_streamer/rxs_depacketizer.h>
+#include <rxs_streamer/rxs_reconstruct.h>
+#include <rxs_streamer/rxs_receiver.h>
+#include <rxs_streamer/rxs_jitter.h>
+#include <rxs_streamer/rxs_control.h>
+#include <rxs_streamer/rxs_stun_io.h>
+#include <rxs_streamer/rxs_signaling.h>
+#include <rxs_streamer/rxs_fec.h>
 }
 
 /* We can use either jitter or simply a reconstructor.
    The jitter lib will create a delayed buffer which allows
-   you to request missing packets. The reconstruct will only 
+   you to request missing packets. The reconstruct will only
    be used to merge frames into decodable buffers. When using
-   reconstruct you'll have less latency but decoding may 
-   show some judder jitter. 
+   reconstruct you'll have less latency but decoding may
+   show some judder jitter.
 */
 
 #define USE_JITTER 0
-#define USE_RECONSTRUCT 1      
-#define USE_SIGNALING 1
+#define USE_RECONSTRUCT 1
+#define USE_SIGNALING 0
+#define USE_FEC 0
 
 #if USE_JITTER && USE_RECONSTRUCT
-#  error "Cannot use both jitter and reconstruct."
+#error "Cannot use both jitter and reconstruct."
 #endif
 
 int request_keyframe = 1;
@@ -68,7 +70,8 @@ rxs_reconstruct recon;
 rxs_control_sender control_sender;
 rxs_stun_io stun_io;     /* only used when USE_SIGNALING is 1 */
 rxs_signal sig_pub;  /* publisher for signal system */
-          
+rxs_fec fec;
+
 //int got_remote_ip = 0;   /* when using signaling, we wait with initializing our receiver */
 
 static int init_player();
@@ -96,7 +99,7 @@ static const char* RXP_PLAYER_VS = ""
   "   vec2(1.0, 0.0),                         \n"
   "   vec2(1.0, 1.0)                          \n"
   ");                                         \n"
-  "out vec2 v_tex;                            \n" 
+  "out vec2 v_tex;                            \n"
   "void main() {                              \n"
   "   vec2 p = pos[gl_VertexID];              \n"
   "   gl_Position = vec4(p.x, p.y, 0.0, 1.0); \n"
@@ -104,7 +107,7 @@ static const char* RXP_PLAYER_VS = ""
   "}                                          \n"
   "";
 
-static const char* RXP_PLAYER_FS = "" 
+static const char* RXP_PLAYER_FS = ""
   "#version 330                                                      \n"
   "uniform sampler2D u_ytex;                                         \n"
   "uniform sampler2D u_utex;                                         \n"
@@ -114,7 +117,7 @@ static const char* RXP_PLAYER_FS = ""
   "const vec3 G_cf = vec3(1.164383, -0.391762, -0.812968);           \n"
   "const vec3 B_cf = vec3(1.164383,  2.017232,  0.000000);           \n"
   "const vec3 offset = vec3(-0.0625, -0.5, -0.5);                    \n"
-  "layout( location = 0 ) out vec4 fragcolor;                        \n" 
+  "layout( location = 0 ) out vec4 fragcolor;                        \n"
   "void main() {                                                     \n"
   "  float y = texture(u_ytex, v_tex).r;                             \n"
   "  float u = texture(u_utex, v_tex).r;                             \n"
@@ -140,34 +143,34 @@ GLuint vao = 0;                                                    /* we need to
 GLuint tex_y = 0;                                                  /* y-channel texture to which we upload the y of the yuv420p */
 GLuint tex_u = 0;                                                  /* u-channel texture to which we upload the u of the yuv420p */
 GLuint tex_v = 0;                                                  /* v-channel texture to which we upload the v of the yuv420p */
-
+int glbl =0;
 /* ---------------------- end:   player specific ------------------------ */
- 
+
 int main() {
- 
+
   glfwSetErrorCallback(error_callback);
- 
+
   if(!glfwInit()) {
     printf("Error: cannot setup glfw.\n");
     exit(EXIT_FAILURE);
   }
- 
+
   glfwWindowHint(GLFW_SAMPLES, 4);
   glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
   glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
   glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
   glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-  
+
   GLFWwindow* win = NULL;
   int w = 1280;
   int h = 720;
- 
+
   win = glfwCreateWindow(w, h, "GLFW", NULL, NULL);
   if(!win) {
     glfwTerminate();
     exit(EXIT_FAILURE);
   }
- 
+
   glfwSetFramebufferSizeCallback(win, resize_callback);
   glfwSetKeyCallback(win, key_callback);
   glfwSetCharCallback(win, char_callback);
@@ -175,14 +178,14 @@ int main() {
   glfwSetMouseButtonCallback(win, button_callback);
   glfwMakeContextCurrent(win);
   glfwSwapInterval(1);
- 
+
 #if defined(__linux) || defined(_WIN32)
   if(glxwInit() != 0) {
     printf("Error: cannot initialize glxw.\n");
     exit(EXIT_FAILURE);
   }
 #endif
- 
+
   // ----------------------------------------------------------------
   // THIS IS WHERE YOU START CALLING OPENGL FUNCTIONS, NOT EARLIER!!
   // ----------------------------------------------------------------
@@ -229,21 +232,21 @@ int main() {
     glfwSwapBuffers(win);
     glfwPollEvents();
   }
- 
+
   glfwTerminate();
- 
+
   return EXIT_SUCCESS;
 }
 
 void char_callback(GLFWwindow* win, unsigned int key) {
 }
- 
+
 void key_callback(GLFWwindow* win, int key, int scancode, int action, int mods) {
-  
+
   if(action != GLFW_PRESS) {
     return;
   }
- 
+
   switch(key) {
     case GLFW_KEY_SPACE: {
       break;
@@ -266,16 +269,16 @@ void key_callback(GLFWwindow* win, int key, int scancode, int action, int mods) 
     }
   };
 }
- 
+
 void resize_callback(GLFWwindow* window, int width, int height) {
 }
- 
+
 void cursor_callback(GLFWwindow* win, double x, double y) {
 }
- 
+
 void button_callback(GLFWwindow* win, int bt, int action, int mods) {
 }
- 
+
 void error_callback(int err, const char* desc) {
   printf("GLFW error: %s (%d)\n", desc, err);
 }
@@ -295,7 +298,7 @@ static GLuint create_texture(int width, int height) {
 }
 
 static int setup_opengl() {
-  
+
   vert = rx_create_shader(GL_VERTEX_SHADER, RXP_PLAYER_VS);
   frag = rx_create_shader(GL_FRAGMENT_SHADER, RXP_PLAYER_FS);
   prog = rx_create_program(vert, frag, true);
@@ -312,7 +315,7 @@ static int setup_opengl() {
 /*
 
   At this moment we only support YUYV420P video and here
-  we create the 3 textures for each Y,U and V layer. Note 
+  we create the 3 textures for each Y,U and V layer. Note
 
 */
 
@@ -337,13 +340,17 @@ static void on_video_frame(rxp_player* player, rxp_packet* pkt) {
   glBindTexture(GL_TEXTURE_2D, tex_v);
   glPixelStorei(GL_UNPACK_ROW_LENGTH, pkt->img[2].stride);
   glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, pkt->img[2].width, pkt->img[2].height, GL_RED, GL_UNSIGNED_BYTE, pkt->img[2].data);
-}  
+}
 #endif
 
 static int init_player() {
   if (rxs_decoder_init(&decoder) < 0) {  return -1;  }
-  if (rxs_depacketizer_init(&depack) < 0) { return -2; } 
-  if (rxs_jitter_init(&jit) < 0) { return -4; } 
+  if (rxs_depacketizer_init(&depack) < 0) { return -2; }
+  if (rxs_jitter_init(&jit) < 0) { return -4; }
+
+#if USE_FEC
+  if (rxs_fec_init(&fec, 0) < 0) {return -7;}
+#endif
 
 #if USE_SIGNALING
 
@@ -368,16 +375,18 @@ static int init_player() {
   */
 
 #else
-  if (rxs_receiver_init(&rec, 6970) < 0) { 
-    return -3; 
-  } 
+  if (rxs_receiver_init(&rec, 6970) < 0) {
+    return -3;
+  }
 #endif
 
-  //if (rxs_control_sender_init(&control_sender, "192.168.0.190", RXS_CONTROL_PORT) < 0) { return -5; } 
-  //if (rxs_control_sender_init(&control_sender, "192.168.0.230", RXS_CONTROL_PORT) < 0) { return -5; } 
-  //if (rxs_control_sender_init(&control_sender, "192.168.0.194", RXS_CONTROL_PORT) < 0) { return -5; } 
-  if (rxs_control_sender_init(&control_sender, "127.0.0.1", RXS_CONTROL_PORT) < 0) { return -5; } 
-  if (rxs_reconstruct_init(&recon) < 0) { return -6; } 
+  //if (rxs_control_sender_init(&control_sender, "192.168.0.190", RXS_CONTROL_PORT) < 0) { return -5; }
+  //if (rxs_control_sender_init(&control_sender, "192.168.0.230", RXS_CONTROL_PORT) < 0) { return -5; }
+  //if (rxs_control_sender_init(&control_sender, "192.168.0.194", RXS_CONTROL_PORT) < 0) { return -5; }
+  //if (rxs_control_sender_init(&control_sender, "141.138.136.101", RXS_CONTROL_PORT) < 0) { return -5; }
+
+  if (rxs_control_sender_init(&control_sender, "127.0.0.1", RXS_CONTROL_PORT) < 0) { return -5; }
+  if (rxs_reconstruct_init(&recon) < 0) { return -6; }
 
   rec.on_data = on_data;
   depack.on_packet = on_vp8_packet;
@@ -392,7 +401,7 @@ static int init_player() {
 static void on_vp8_packet(rxs_depacketizer* dep, uint8_t* buffer, uint32_t nbytes) {
   /* @todo - we need to implement some logic in the on_vp8_packet function
      we can only pass packets to the vp8 decoder after/when we receive
-     a keyframe else libvpx causes the app to crash on linux. 
+     a keyframe else libvpx causes the app to crash on linux.
   */
 
   int r = 0;
@@ -401,7 +410,7 @@ static void on_vp8_packet(rxs_depacketizer* dep, uint8_t* buffer, uint32_t nbyte
   rxs_packet pkt;
   pkt.marker = dep->marker;
   pkt.timestamp = dep->timestamp;
-  pkt.seqnum = dep->seqnum; 
+  pkt.seqnum = dep->seqnum;
   pkt.data = buffer;
   pkt.nbytes = nbytes;
   pkt.nonref = dep->N;
@@ -414,16 +423,16 @@ static void on_vp8_packet(rxs_depacketizer* dep, uint8_t* buffer, uint32_t nbyte
   rxs_packet pkt;
   pkt.marker = dep->marker;
   pkt.timestamp = dep->timestamp;
-  pkt.seqnum = dep->seqnum; 
+  pkt.seqnum = dep->seqnum;
   pkt.data = buffer;
   pkt.nbytes = nbytes;
   pkt.nonref = dep->N;
-  
+
   if (rxs_reconstruct_add_packet(&recon, &pkt) < 0) {
     printf("Error: cannot reconstruct!\n");
     exit(1);
   }
-  
+
   r = rxs_reconstruct_merge_packets(&recon, pkt.timestamp);
 
   /* @todo - add check seqnums (?) */
@@ -435,7 +444,7 @@ static void on_vp8_packet(rxs_depacketizer* dep, uint8_t* buffer, uint32_t nbyte
 
   r = rxs_reconstruct_check_seqnum(&recon, pkt.seqnum);
 
-#else 
+#else
 
   static uint8_t data[1024 * 1024 * 4];
   static uint32_t pos = 0;
@@ -463,7 +472,27 @@ static void on_vp8_packet(rxs_depacketizer* dep, uint8_t* buffer, uint32_t nbyte
 }
 
 static void on_data(rxs_receiver* rec, uint8_t* buffer, uint32_t nbytes) {
-  rxs_depacketizer_unwrap(&depack, buffer, (int64_t)nbytes);
+
+  //Check if FEC here? I think so...
+
+  glbl++;
+  //if(((buffer[1] & 0x80) >> 7) !=1){
+  //if(glbl%4 != 1){
+//    printf("Inside...\n");
+
+  #if USE_FEC
+
+   if(buffer[1] == 0x7e){
+     printf("GOT AN FEC PACKET!!!!! :D\n");
+     rxs_fec_unwrap(&fec, buffer, nbytes);
+   }else{
+     rxs_depacketizer_unwrap(&depack, buffer, (int64_t)nbytes);
+   }
+
+  #else
+    rxs_depacketizer_unwrap(&depack, buffer, (int64_t)nbytes);
+  #endif
+//  }
 }
 
 static void on_missing_seqnum(rxs_jitter* jit, uint16_t* seqnums, int num) {
@@ -481,7 +510,7 @@ static void on_frame(rxs_jitter* jit, uint8_t* data, uint32_t nbytes) {
 
 static void on_vp8_image(rxs_decoder* dec, vpx_image_t* img) {
 
-  if (!img) { return ; } 
+  if (!img) { return ; }
 
   if (tex_y == 0) {
     printf("- create textures.\n");
@@ -509,8 +538,8 @@ static void on_vp8_image(rxs_decoder* dec, vpx_image_t* img) {
 }
 
 /* We use rxs_reconstruct instead of rxs_jitter to reduce latency */
-static void on_recon_missing_seqnum(rxs_reconstruct* recon, 
-                                    uint16_t* seqnums, 
+static void on_recon_missing_seqnum(rxs_reconstruct* recon,
+                                    uint16_t* seqnums,
                                     int num)
 {
   printf("----------- MISSING RECONSTRUCT SEQNUMS --------------\n");
@@ -521,16 +550,16 @@ static void on_recon_missing_seqnum(rxs_reconstruct* recon,
 }
 
 /* We use rxs_reconstruct instead of rxs_jitter to reduce latency */
-static void on_recon_frame(rxs_reconstruct* recon, 
-                           uint8_t* data, 
-                           uint32_t nbytes) 
+static void on_recon_frame(rxs_reconstruct* recon,
+                           uint8_t* data,
+                           uint32_t nbytes)
 {
-  
+
   rxs_decoder_decode(&decoder, data, nbytes);
 }
 
-/* 
-   When using signaling (USE_SIGNALING), this will be called once we've 
+/*
+   When using signaling (USE_SIGNALING), this will be called once we've
    received our public IP:PORT
 */
 static void on_stun_address(rxs_stun_io* io, const char* ip, uint16_t port) {

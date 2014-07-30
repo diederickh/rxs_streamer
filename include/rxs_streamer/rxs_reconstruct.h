@@ -6,7 +6,8 @@
   rxs_reconstruct takes care of merging rxs_packets with 
   RTP VP8 data and detecting missing sequence numbers. 
 
- */
+*/
+
 #ifndef RXS_RECONSTRUCT_H
 #define RXS_RECONSTRUCT_H
 

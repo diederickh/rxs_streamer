@@ -3,8 +3,8 @@
   rxs_encoder
   -----------
   The rxs_encoder encoder raw I420 frames using VP8 and calls the set on_packet
-  callback when it has some encoded data. At the moment of writing each packet 
-  that is passed into the on_packet callback will contain one VP8 partition which 
+  callback when it has some encoded data. At the moment of writing each packet
+  that is passed into the on_packet callback will contain one VP8 partition which
   makes it easy to encapsulate in a RTP VP8 packet.
 
  */
@@ -32,7 +32,7 @@ struct rxs_encoder_config {
 struct rxs_encoder {
   vpx_image_t img;
   vpx_codec_enc_cfg_t cfg;
-  vpx_codec_ctx_t ctx;  
+  vpx_codec_ctx_t ctx;
   int width;
   int height;
   int fps_num;

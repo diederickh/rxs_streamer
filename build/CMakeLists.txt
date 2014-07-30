@@ -32,6 +32,7 @@ set(rxs_streamer_sources
   ${sd}/rxs_streamer/rxs_stun.c
   ${sd}/rxs_streamer/rxs_stun_io.c
   ${sd}/rxs_streamer/rxs_signaling.c
+  ${sd}/rxs_streamer/rxs_fec.c
 )
 
 if(UNIX AND NOT APPLE)
@@ -63,6 +64,7 @@ if(APPLE)
     ${extern_lib_dir}/libvideocapture.a
     ${extern_lib_dir}/libyuv.a
     ${extern_lib_dir}/libhiredis.a     # for signaling
+	${extern_lib_dir}/libJerasure.dylib
     ${fr_corefoundation}  # uv
     ${fr_cocoa}           # uv
     ${fr_iokit}           # uv

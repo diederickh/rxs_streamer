@@ -1,13 +1,14 @@
 /*
-  
+
   test_webcam_streamer
   --------------------
-  
-  Uses libvideocapture to create a cross platform low latency 
-  video streamer. This test is used while testing latency and
-  is tested on linux and mac using a Logitech C920 webcam. 
 
- */
+  Uses libvideocapture to create a cross platform low latency
+  video streamer. This test is used while testing latency and
+  is tested on linux and mac using a Logitech C920 webcam.
+
+*/
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <signal.h>
@@ -22,16 +23,18 @@ extern "C" {
 #  include <rxs_streamer/rxs_sender.h>
 #  include <rxs_streamer/rxs_control.h>
 #  include <rxs_streamer/rxs_signaling.h>
+#  include <rxs_streamer/rxs_fec.h>
 #  include <libyuv.h>
 #  include <uv.h>
 }
 
-#define USE_SIGNALING 1         /* when set to 1, we try to connect to a signalign server and retrieve an IP:PORT for a specific slot */
+#define USE_SIGNALING 0 /* when set to 1, we try to connect to a signalign server and retrieve an IP:PORT for a specific slot */
 #define USE_IVF 0
 #define DEVICE 1
 #define WIDTH 640
 #define HEIGHT 480
 #define FPS 30
+#define USE_FEC 0 /*To FEC, or to not FEC; That is the question. (0 = No, 1 = Yes)*/
 
 using namespace ca;
 
@@ -61,6 +64,7 @@ rxs_encoder encoder;
 rxs_packetizer packer;
 rxs_sender sender;
 rxs_ivf ivf;
+rxs_fec fec;
 rxs_control_receiver control_receiver; /* used to request handle keyframe requests */
 //rxs_sigclient sigclient;
 rxs_signal sig_sub; /* signal subscriber, used to get IP:PORT information when using signaling  */
@@ -108,7 +112,7 @@ int main() {
   if (cap_capability < 0) {
     printf("Warning:: I420 not supported falling back to YUY2.\n");
     cap_fmt = CA_YUYV422;
-    //cap_fmt = CA_UYVY422;
+    cap_fmt = CA_UYVY422;
     cap_capability = cap->findCapability(DEVICE, WIDTH, HEIGHT, cap_fmt);
 
     cap_capability = 161; /* there is something silly going on with findCapability and CA_YUYV422 */
@@ -151,7 +155,7 @@ int main() {
     exit(1);
   }
 
-  encoder.on_packet = on_vp8_packet;  
+  encoder.on_packet = on_vp8_packet;
 
   /* initialize the packetizer */
   if (rxs_packetizer_init(&packer) < 0) {
@@ -185,11 +189,20 @@ int main() {
   */
 #else
   /* initialize our sender (network output) */
-  if (rxs_sender_init(&sender, "127.0.0.1", 6970) < 0) { 
-    printf("Error: cannot init the sender.\n");
+ //if (rxs_sender_init(&sender, "84.105.186.141", 6970) < 0) {
+	if(rxs_sender_init(&sender, "127.0.0.1", 6970) < 0){
+	printf("Error: cannot init the sender.\n");
     exit(1);
   }
-#endif  
+#endif
+
+#if USE_FEC
+
+  if(rxs_fec_init(&fec, 0) < 0){
+	   fprintf( stderr, "Error: cannot initialize FEC.\n");
+  }
+
+#endif
 
 #if USE_IVF
   /* create our ivf muxer */
@@ -219,7 +232,7 @@ int main() {
 
   time_started = uv_hrtime();
 
-  while(1) { 
+  while(1) {
     cap->update();
 
     rxs_control_receiver_update(&control_receiver);
@@ -230,8 +243,8 @@ int main() {
     if (got_remote_ip == 1) {
       rxs_sender_update(&sender);
     }
-#else 
-   rxs_sender_update(&sender); 
+#else
+   rxs_sender_update(&sender);
 #endif
 
   }
@@ -244,8 +257,10 @@ int main() {
 
 static void on_webcam_frame(void* pixels, int nbytes, void* user) {
 
+	printf("\nGot a frame;\n");
+
   static uint64_t nframes = 0;
-  
+
   nframes++;
   if (force_keyframe && force_keyframe % nframes == 0) {
     rxs_encoder_request_keyframe(&encoder);
@@ -256,15 +271,30 @@ static void on_webcam_frame(void* pixels, int nbytes, void* user) {
   if (!time_started) {
     time_started = uv_hrtime();
   }
-  
+
+#define USE_KEYFRAMES 1
+
+#if USE_KEYFRAMES
+
+     if (nframes % 25 == 0) {
+		      if (rxs_encoder_request_keyframe(&encoder) < 0) {
+				         printf("Error: cannot request a keyframe.\n");
+						      }
+			       else {
+					            printf("Requested a new keyframe.\n");
+								     }
+				      }
+
+#endif
+
   pts = (uv_hrtime() - time_started) / (1000llu * 1000llu);
 
   if (cap_fmt == CA_YUYV422) {
 
-    r = libyuv::YUY2ToI420((const uint8*)pixels,  WIDTH * 2, 
-                           (uint8*)yuv_y, WIDTH, 
-                           (uint8*)yuv_u, WIDTH / 2, 
-                           (uint8*)yuv_v, WIDTH / 2, 
+    r = libyuv::YUY2ToI420((const uint8*)pixels,  WIDTH * 2,
+                           (uint8*)yuv_y, WIDTH,
+                           (uint8*)yuv_u, WIDTH / 2,
+                           (uint8*)yuv_v, WIDTH / 2,
                            WIDTH, HEIGHT);
 
     if (r != 0) {
@@ -275,10 +305,10 @@ static void on_webcam_frame(void* pixels, int nbytes, void* user) {
     rxs_encoder_encode(&encoder, (unsigned char*)yuv_y, pts);
   }
   else if (cap_fmt == CA_UYVY422) {
-    r = libyuv::UYVYToI420((const uint8*)pixels,  WIDTH * 2, 
-                           (uint8*)yuv_y, WIDTH, 
-                           (uint8*)yuv_u, WIDTH / 2, 
-                           (uint8*)yuv_v, WIDTH / 2, 
+    r = libyuv::UYVYToI420((const uint8*)pixels,  WIDTH * 2,
+                           (uint8*)yuv_y, WIDTH,
+                           (uint8*)yuv_u, WIDTH / 2,
+                           (uint8*)yuv_v, WIDTH / 2,
                            WIDTH, HEIGHT);
     if (r != 0) {
       printf("Error: cannot convert to I420.\n");
@@ -293,8 +323,10 @@ static void on_webcam_frame(void* pixels, int nbytes, void* user) {
 }
 
 static void on_vp8_packet(rxs_encoder* enc, const vpx_codec_cx_pkt_t* pkt, int64_t pts) {
-  if (!enc) { return ; } 
-  if (!pkt) { return ; } 
+  if (!enc) { return ; }
+  if (!pkt) { return ; }
+
+  printf("\nGot a VP8 packet;\n");
 
 #if USE_IVF
   /* we need to collect data because the encoder can give us fragmented output */
@@ -322,10 +354,14 @@ static void on_vp8_packet(rxs_encoder* enc, const vpx_codec_cx_pkt_t* pkt, int64
 }
 
 static void on_rtp_packet(rxs_packetizer* vpx, uint8_t* buffer, uint32_t nbytes) {
+
+  int i;
   uint64_t dt = (uv_hrtime() - time_started) / (1000llu * 1000llu);
   uint64_t bitrate = 0;
   total_bytes += (nbytes * 4); /* @todo, note were sending everyting 4 times to make handle dropped packets */
   bitrate = total_bytes / dt;
+
+  printf("\nGot an RTP packet;\n");
 
 #if USE_SIGNALING
   /* start sending once we know the IP:PORT of the receiver */
@@ -334,23 +370,65 @@ static void on_rtp_packet(rxs_packetizer* vpx, uint8_t* buffer, uint32_t nbytes)
   }
 #endif
 
+  printf("Numbytes sent:%d \n", nbytes);
 
   if (rxs_sender_send(&sender, buffer, nbytes) < 0) {
     printf("Error: cannot send rtp packet.\n");
-  }  
+  }
+
+  printf("Is it here?\n");
+/*John: I'm going to add FEC right here!*/
+#if USE_FEC
+
+/*Used in FEC header*/
+if(fec.index == 0){
+  fec.SN_Base = vpx->seqnum;
+}
+
+/*Check RTP marker bit for last packet needed for encoding;*/
+if( rxs_fec_add_packet(&fec, buffer, nbytes) < 0){
+  fprintf(stderr, "Can't add FEC Packets...\n");
+}
+
+if((buffer[1] >> 7) & 1){
+
+  printf("Got a marker bit!\n");
+
+  if(rxs_fec_encode(&fec) < 0){
+    fprintf(stderr, "problems w/ FEC encoding\n");
+  }
+
+  if(rxs_fec_wrap(&fec) < 0){
+    fprintf(stderr, "problems w/ FEC wrap\n");
+  }
+
+  for(i=0; i<fec.numCoding; i++){
+    if(rxs_sender_send(&sender, (uint8_t *)fec.coding[i]+12, 820)< 0){
+      printf("Error: cannot send FEC packet.\n");
+    }
+  }
+
+  if(rxs_fec_reset_bufs(&fec) < 0){
+    printf("Error: could not reset FEC buffers...\n");
+  }
+
+}
+
+#endif
+
 
   /* @todo -> we're sending everything 3 times ... simple congestion control */
 #if 0
   if (rxs_sender_send(&sender, buffer, nbytes) < 0) {
     printf("Error: cannot send rtp packet.\n");
-  }  
+  }
 
   if (rxs_sender_send(&sender, buffer, nbytes) < 0) {
     printf("Error: cannot send rtp packet.\n");
-  }  
+  }
   if (rxs_sender_send(&sender, buffer, nbytes) < 0) {
     printf("Error: cannot send rtp packet.\n");
-  }  
+  }
 #endif
 
 }
@@ -363,7 +441,7 @@ static void on_control_command(rxs_control_receiver* rec) {
 }
 
 static void on_signal(int s) {
-  
+
   printf("\n\nSIGNAL\n\n");
 
   if (cap) {
@@ -380,6 +458,12 @@ static void on_signal(int s) {
   }
 #endif
 
+#if USE_FEC
+  if(rxs_fec_clear_buf(&fec)< 0){
+    printf("Couldn't shut down fec.");
+  }
+#endif
+
   exit(0);
 }
 
@@ -389,7 +473,7 @@ static void on_address(rxs_signal* s, char* ip, uint16_t port) {
 
   /* initialize the sender with the IP:PORT of the we received from the signaling server. */
   if (got_remote_ip == 0) {
-    if (rxs_sender_init(&sender, ip, port) < 0) { 
+    if (rxs_sender_init(&sender, ip, port) < 0) {
       printf("Error: cannot init the sender.\n");
       exit(1);
     }

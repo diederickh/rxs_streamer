@@ -12,7 +12,7 @@ static void send_cb(uv_udp_send_t* req, int status);
 int rxs_sender_init(rxs_sender* net, const char* ip, int port) {
   int r;
 
-  if (!net) { return -1; } 
+  if (!net) { return -1; }
 
   /* get default loop */
   net->loop = uv_default_loop();
@@ -33,21 +33,21 @@ int rxs_sender_init(rxs_sender* net, const char* ip, int port) {
   if (r != 0) {
     printf("Error: cannot create addr struct for sender: %s\n", uv_strerror(r));
     return -4;
-  } 
+  }
 
   return 0;
 }
 
 int rxs_sender_send(rxs_sender* net, uint8_t* buffer, uint32_t nbytes) {
-  
+
   char* tmp = NULL;
   int r;
   uv_buf_t b;
   uv_udp_send_t* req = NULL;
 
-  if (!net) { return -1; } 
-  if (!buffer) { return -2; } 
-  if (!nbytes) { return -3; } 
+  if (!net) { return -1; }
+  if (!buffer) { return -2; }
+  if (!nbytes) { return -3; }
 
   /* we should copy the buf here... */
   tmp = (char*)malloc(nbytes);

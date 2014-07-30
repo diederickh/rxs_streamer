@@ -4,7 +4,7 @@
   -----------------
 
   rxs_depacketizer unwraps RTP VP8 packets and calls the set on_packet
-  function after it parsed a RTP packet correctly. Note that one frame can 
+  function after it parsed a RTP packet correctly. Note that one frame can
   be split over multiple packets. Therefore you need to collect the data
   until the marker bit has been set to 1 (see the RTP RFC and e.g. test_vpx).
 
@@ -42,7 +42,7 @@ struct rxs_depacketizer {
   /* VP8: 2nd second row Payload Descriptor (is optional) */
   uint8_t I;                            /* 1 if PictureID is present */
   uint8_t L;                            /* 1 if TL0PICIDX is present */
-  uint8_t T;                            /* 1 if TID is present */ 
+  uint8_t T;                            /* 1 if TID is present */
   uint8_t K;                            /* 1 if KEYIDX is present */
   uint16_t PictureID;                    /* 8 or 16 bits, picture ID */
   uint8_t TL0PICIDX;                    /* 8 bits temporal level zero index */
