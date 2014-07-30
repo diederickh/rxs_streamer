@@ -26,9 +26,9 @@ extern "C" {
 #  include <uv.h>
 }
 
-#define USE_SIGNALING 1         /* when set to 1, we try to connect to a signalign server and retrieve an IP:PORT for a specific slot */
+#define USE_SIGNALING 0         /* when set to 1, we try to connect to a signalign server and retrieve an IP:PORT for a specific slot */
 #define USE_IVF 0
-#define DEVICE 1
+#define DEVICE 0
 #define WIDTH 640
 #define HEIGHT 480
 #define FPS 30
@@ -65,6 +65,7 @@ rxs_control_receiver control_receiver; /* used to request handle keyframe reques
 //rxs_sigclient sigclient;
 rxs_signal sig_sub; /* signal subscriber, used to get IP:PORT information when using signaling  */
 int got_remote_ip = 0; /* when using signaling we wait to update the sender until we received the remote IP:PORT. */
+int ndevices = 0;
 
 int main() {
   printf("\n\ntest_video_streamer\n\n");
@@ -89,10 +90,17 @@ int main() {
   }
 
   /* displays a list of available devices */
-  if (cap->listDevices() <= 0) {
+  ndevices = cap->listDevices();
+  if (ndevices <= 0) {
     printf("Error: no capture device found.\n");
     exit(1);
   }
+
+  if (DEVICE > (ndevices - 1)) {
+    printf("Error: invalid device ID, check #define DEVICE value.\n");
+    exit(1);
+  }
+  
 
 #if 0
   if (cap->listCapabilities(DEVICE) < 0) {
@@ -108,7 +116,7 @@ int main() {
   if (cap_capability < 0) {
     printf("Warning:: I420 not supported falling back to YUY2.\n");
     cap_fmt = CA_YUYV422;
-    //cap_fmt = CA_UYVY422;
+    cap_fmt = CA_UYVY422; /* need this on Mac with C920 */
     cap_capability = cap->findCapability(DEVICE, WIDTH, HEIGHT, cap_fmt);
 
     cap_capability = 161; /* there is something silly going on with findCapability and CA_YUYV422 */
@@ -185,7 +193,9 @@ int main() {
   */
 #else
   /* initialize our sender (network output) */
-  if (rxs_sender_init(&sender, "127.0.0.1", 6970) < 0) { 
+  /* @todo - we should be able to pass an domain too! */
+  //if (rxs_sender_init(&sender, "127.0.0.1", 6970) < 0) { 
+  if (rxs_sender_init(&sender, "76.123.235.77", 6970) < 0) { 
     printf("Error: cannot init the sender.\n");
     exit(1);
   }
@@ -219,9 +229,12 @@ int main() {
 
   time_started = uv_hrtime();
 
+
+
   while(1) { 
     cap->update();
 
+    
     rxs_control_receiver_update(&control_receiver);
 
 #if USE_SIGNALING
@@ -256,7 +269,22 @@ static void on_webcam_frame(void* pixels, int nbytes, void* user) {
   if (!time_started) {
     time_started = uv_hrtime();
   }
-  
+
+#define USE_KEYFRAMES 1
+
+#if USE_KEYFRAMES
+
+   if (nframes % 25 == 0) {
+     if (rxs_encoder_request_keyframe(&encoder) < 0) {
+       printf("Error: cannot request a keyframe.\n");
+     }
+     else {
+         printf("Requested a new keyframe.\n");
+     }
+   }
+
+#endif   
+
   pts = (uv_hrtime() - time_started) / (1000llu * 1000llu);
 
   if (cap_fmt == CA_YUYV422) {

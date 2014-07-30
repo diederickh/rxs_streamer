@@ -3,7 +3,7 @@
  general
  -------
  - make user of a generic rxs_packet to represent a VP8 packet. 
-
+ - detect the MTU size dynamically
 
  rxs_packetizer
  --------------

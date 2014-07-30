@@ -53,7 +53,7 @@ extern "C" {
 
 #define USE_JITTER 0
 #define USE_RECONSTRUCT 1      
-#define USE_SIGNALING 1
+#define USE_SIGNALING 0
 
 #if USE_JITTER && USE_RECONSTRUCT
 #  error "Cannot use both jitter and reconstruct."
@@ -359,7 +359,6 @@ static int init_player() {
     return -10;
   }
 
-
   /*
   if (rxs_sigclient_init(&sigclient, "tcp://home.roxlu.com:5995") < 0) {
     printf("Error: cannot initialize the sigclient.\n");
@@ -376,7 +375,10 @@ static int init_player() {
   //if (rxs_control_sender_init(&control_sender, "192.168.0.190", RXS_CONTROL_PORT) < 0) { return -5; } 
   //if (rxs_control_sender_init(&control_sender, "192.168.0.230", RXS_CONTROL_PORT) < 0) { return -5; } 
   //if (rxs_control_sender_init(&control_sender, "192.168.0.194", RXS_CONTROL_PORT) < 0) { return -5; } 
-  if (rxs_control_sender_init(&control_sender, "127.0.0.1", RXS_CONTROL_PORT) < 0) { return -5; } 
+  //if (rxs_control_sender_init(&control_sender, "127.0.0.1", RXS_CONTROL_PORT) < 0) { return -5; } 
+  if (rxs_control_sender_init(&control_sender, "76.123.235.77", RXS_CONTROL_PORT) < 0) { return -5; } 
+  //if (rxs_control_sender_init(&control_sender, "76.123.235.77", RXS_CONTROL_PORT) < 0) { return -5; } 
+
   if (rxs_reconstruct_init(&recon) < 0) { return -6; } 
 
   rec.on_data = on_data;
@@ -410,6 +412,7 @@ static void on_vp8_packet(rxs_depacketizer* dep, uint8_t* buffer, uint32_t nbyte
     printf("Error: cannot add a packet to the jitter buffer.\n");
     exit(1);
   }
+
 #elif USE_RECONSTRUCT
   rxs_packet pkt;
   pkt.marker = dep->marker;

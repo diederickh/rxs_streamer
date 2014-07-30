@@ -2,6 +2,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdint.h>
+#include <time.h>
 #include <rxs_streamer/rxs_stun_io.h>
 
 /* --------------------------------------------------------------------------- */
@@ -45,6 +46,10 @@ int rxs_stun_io_init(rxs_stun_io* io, const char* server, const char* port) {
     io->mem[i].is_free = 1;
     io->mem[i].io = io;
   }
+
+  //srand(time(NULL));
+  //io->port = (rand() % (4000+1-3000))+3000;
+  //printf("PORT: %d\n", io->port);
 
   /* hints for resolver */
   hints.ai_family = AF_INET;
@@ -231,6 +236,7 @@ static void on_resolved(uv_getaddrinfo_t* resolver, int status, struct addrinfo*
     exit(1);
   }
 
+#if 1  
   r = uv_udp_bind(&io->sock, (const struct sockaddr*)&raddr, 0);
   if(r < 0) {
     printf("Error: cannot bind: %s, in rxs_stun_io\n", uv_strerror(r));
@@ -243,6 +249,7 @@ static void on_resolved(uv_getaddrinfo_t* resolver, int status, struct addrinfo*
     printf("Error: cannot start recieving: %s\n", uv_strerror(r));
     exit(1);
   }
+#endif 
   
   /* @todo --> ready to kickoff stun */
   io->state = RXS_SIO_STATE_RESOLVED;
@@ -351,12 +358,13 @@ static void on_stun_attr(rxs_stun* stun, rxs_stun_attr* attr) {
   }
   sprintf((char*)straddr, "%d.%d.%d.%d", addr[0], addr[1], addr[2], addr[3]);
 
-
   /* begin - TMP - @todo - testing a listening sock */
+  /*
   if (io->listening == 0) {
     printf("Starting to listen.\n");
 
-    r = uv_ip4_addr((const char*)straddr, attr->address.sin_port, &saddr);
+    //r = uv_ip4_addr((const char*)straddr, attr->address.sin_port, &saddr);
+    r = uv_ip4_addr("0.0.0.0", attr->address.sin_port, &saddr);
     if (r != 0) {
       printf("Error: cannot make ip4 addr.: %s\n", uv_strerror(r));
       return;
@@ -382,6 +390,26 @@ static void on_stun_attr(rxs_stun* stun, rxs_stun_attr* attr) {
 
     io->listening = 1;    
   }
+  */
+
+  /*
+  if (io->listening == 0) {
+    r = uv_udp_bind(&io->sock, (const struct sockaddr*)&saddr, 0);
+    if (r != 0) {
+      printf("Error: cannot bind listening sock: %s\n", uv_strerror(r));
+      return;
+    }
+
+    r = uv_udp_recv_start(&io->sock, on_alloc, on_listen_read);
+    if (r != 0) {
+      printf("Error: cannot start receiving data on listening sock: %s\n", uv_strerror(r));
+      return;
+    }
+
+    io->listening = 1;
+
+  }
+  */
   /* end - TMP - @todo - end testing sock. */
 
   if (io->on_address) {

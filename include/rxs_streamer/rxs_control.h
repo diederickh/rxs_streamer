@@ -44,7 +44,7 @@
 
 #include <stdint.h>
 #include <uv.h>
-#include <rxs_streamer/rxs_control.h>
+#include <rxs_streamer/rxs_control.h> /* @todo - what?? */
 
 #define RXS_CONTROL_MAX_SEQNUM 15                                                 /* we don't allow more then 15 missed packets */
 #define RXS_CONTROL_COMMAND_KEY_FRAME 1                                           /* command to request a new keyframe */
