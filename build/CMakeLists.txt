@@ -64,7 +64,7 @@ if(APPLE)
     ${extern_lib_dir}/libvideocapture.a
     ${extern_lib_dir}/libyuv.a
     ${extern_lib_dir}/libhiredis.a     # for signaling
-	${extern_lib_dir}/libJerasure.dylib
+  	${extern_lib_dir}/libJerasure.a
     ${fr_corefoundation}  # uv
     ${fr_cocoa}           # uv
     ${fr_iokit}           # uv

@@ -42,8 +42,12 @@
 #endif
 #include <signal.h>
 
+#include "uv-threadpool.h"
+
 #if defined(__linux__)
 # include "uv-linux.h"
+#elif defined(_AIX)
+# include "uv-aix.h"
 #elif defined(__sun)
 # include "uv-sunos.h"
 #elif defined(__APPLE__)
@@ -53,6 +57,14 @@
       defined(__OpenBSD__)    || \
       defined(__NetBSD__)
 # include "uv-bsd.h"
+#endif
+
+#ifndef NI_MAXHOST
+# define NI_MAXHOST 1025
+#endif
+
+#ifndef NI_MAXSERV
+# define NI_MAXSERV 32
 #endif
 
 #ifndef UV_IO_PRIVATE_PLATFORM_FIELDS
@@ -86,13 +98,6 @@ struct uv__async {
   uv__async_cb cb;
   uv__io_t io_watcher;
   int wfd;
-};
-
-struct uv__work {
-  void (*work)(struct uv__work *w);
-  void (*done)(struct uv__work *w, int status);
-  struct uv_loop_s* loop;
-  void* wq[2];
 };
 
 #ifndef UV_PLATFORM_SEM_T
@@ -210,7 +215,7 @@ typedef struct {
 
 #define UV_UDP_SEND_PRIVATE_FIELDS                                            \
   void* queue[2];                                                             \
-  struct sockaddr_in6 addr;                                                   \
+  struct sockaddr_storage addr;                                               \
   unsigned int nbufs;                                                         \
   uv_buf_t* bufs;                                                             \
   ssize_t status;                                                             \
@@ -279,6 +284,15 @@ typedef struct {
   char* hostname;                                                             \
   char* service;                                                              \
   struct addrinfo* res;                                                       \
+  int retcode;
+
+#define UV_GETNAMEINFO_PRIVATE_FIELDS                                         \
+  struct uv__work work_req;                                                   \
+  uv_getnameinfo_cb getnameinfo_cb;                                           \
+  struct sockaddr_storage storage;                                            \
+  int flags;                                                                  \
+  char host[NI_MAXHOST];                                                      \
+  char service[NI_MAXSERV];                                                   \
   int retcode;
 
 #define UV_PROCESS_PRIVATE_FIELDS                                             \
