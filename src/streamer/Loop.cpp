@@ -116,9 +116,9 @@ void Loop::update() {
           if (wr->on_written) {
             wr->on_written(wr);
           }
-
         }
-        
+
+        /* all write requests are EV_ONESHOT, so we need to remote them here! */
         for (std::vector<struct kevent>::iterator it = write_list.begin(); it != write_list.end(); ++it) {
           struct kevent& wk = *it;
           if (wk.ident == kev.ident) {
@@ -132,6 +132,7 @@ void Loop::update() {
 }
 
 WriteRequest* Loop::getFreeWriteRequest() {
+
   /* check if there is a free write request */
   for (size_t i = 0; i < write_requests.size(); ++i) {
     WriteRequest* wr = write_requests[i];
@@ -152,6 +153,7 @@ WriteRequest* Loop::getFreeWriteRequest() {
   wr->is_free = false;
   write_requests.push_back(wr);
 
+  /* probably too many write requests in use, log a warning */
   if (100 < write_requests.size()) {
     printf("Warning: we've created %lu or write requests. Looks like their not set free. You should call 'reset()' in your write callback.\n", write_requests.size());
   }
@@ -159,7 +161,10 @@ WriteRequest* Loop::getFreeWriteRequest() {
   return wr;
 }
 
-int Loop::sendTo(Socket* sender, struct sockaddr_in addr, const uint8_t* data, uint32_t nbytes, loop_on_written onwritten, void* udata) {
+int Loop::sendTo(Socket* sender, struct sockaddr_in addr, 
+                 const uint8_t* data, uint32_t nbytes, 
+                 loop_on_written onwritten, void* udata) 
+{
 
   if (NULL == data) { return -2; } 
   if (0 == nbytes) { return -3; } 
