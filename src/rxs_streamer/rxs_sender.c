@@ -51,12 +51,22 @@ int rxs_sender_send(rxs_sender* net, uint8_t* buffer, uint32_t nbytes) {
 
   /* we should copy the buf here... */
   tmp = (char*)malloc(nbytes);
+  if (NULL == tmp) {
+    printf("Error: cannot allocate BUF.\n");
+    return -4;
+  }
   memcpy(tmp, buffer, nbytes);
 
   /* @todo - the tests of libuv use this, but I'm pretty sure we want to allocate on the heap here */
 
   b = uv_buf_init((char*)tmp, nbytes);
   req = (uv_udp_send_t*)malloc(sizeof(uv_udp_send_t));
+  if (NULL == req) {
+    printf("Error: cannot allocate REQ.\n");
+    return -4;
+  }
+  memset(req, 0x00, sizeof(uv_udp_send_t));
+
   req->data = tmp;
   r = uv_udp_send(req, &net->send_sock, &b, 1, (const struct sockaddr*)&net->saddr, send_cb);
 
@@ -70,6 +80,7 @@ int rxs_sender_send(rxs_sender* net, uint8_t* buffer, uint32_t nbytes) {
 
 void rxs_sender_update(rxs_sender* net){
   uv_run(net->loop, UV_RUN_NOWAIT);
+  //uv_run(net->loop, UV_RUN_ONCE);
   //uv_run(net->loop, UV_RUN_DEFAULT);
 }
 
@@ -78,6 +89,7 @@ void rxs_sender_update(rxs_sender* net){
 static void send_cb(uv_udp_send_t* req, int status) {
 
   char* data = (char*)req->data;
+
   free(data);
   data = NULL;
 

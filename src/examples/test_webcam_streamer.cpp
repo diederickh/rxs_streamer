@@ -28,10 +28,10 @@ extern "C" {
 
 #define USE_SIGNALING 0         /* when set to 1, we try to connect to a signalign server and retrieve an IP:PORT for a specific slot */
 #define USE_IVF 0
-#define DEVICE 0
+#define DEVICE 1
 #define WIDTH 640
 #define HEIGHT 480
-#define FPS 30
+#define FPS 5
 
 using namespace ca;
 
@@ -62,7 +62,6 @@ rxs_packetizer packer;
 rxs_sender sender;
 rxs_ivf ivf;
 rxs_control_receiver control_receiver; /* used to request handle keyframe requests */
-//rxs_sigclient sigclient;
 rxs_signal sig_sub; /* signal subscriber, used to get IP:PORT information when using signaling  */
 int got_remote_ip = 0; /* when using signaling we wait to update the sender until we received the remote IP:PORT. */
 int ndevices = 0;
@@ -119,7 +118,7 @@ int main() {
     cap_fmt = CA_UYVY422; /* need this on Mac with C920 */
     cap_capability = cap->findCapability(DEVICE, WIDTH, HEIGHT, cap_fmt);
 
-    cap_capability = 161; /* there is something silly going on with findCapability and CA_YUYV422 */
+    //cap_capability = 161; /* there is something silly going on with findCapability and CA_YUYV422 */
 
     if (cap_capability < 0) {
       //cap->listCapabilities(0);
@@ -133,7 +132,7 @@ int main() {
 
   /* open the device using the capability we found.*/
   Settings settings;
-  settings.device = 0;
+  settings.device = DEVICE;
   settings.capability = cap_capability;
   settings.format = -1; // CA_YUYV422;
   if (cap->open(settings) < 0) {
@@ -194,8 +193,8 @@ int main() {
 #else
   /* initialize our sender (network output) */
   /* @todo - we should be able to pass an domain too! */
-  //if (rxs_sender_init(&sender, "127.0.0.1", 6970) < 0) { 
-  if (rxs_sender_init(&sender, "76.123.235.77", 6970) < 0) { 
+  if (rxs_sender_init(&sender, "127.0.0.1", 6970) < 0) { 
+  //if (rxs_sender_init(&sender, "76.123.235.77", 6970) < 0) { 
     printf("Error: cannot init the sender.\n");
     exit(1);
   }
@@ -362,13 +361,60 @@ static void on_rtp_packet(rxs_packetizer* vpx, uint8_t* buffer, uint32_t nbytes)
   }
 #endif
 
-
+#if 1
   if (rxs_sender_send(&sender, buffer, nbytes) < 0) {
     printf("Error: cannot send rtp packet.\n");
   }  
+#endif
 
   /* @todo -> we're sending everything 3 times ... simple congestion control */
-#if 0
+#define USE_TEST_A 0
+#define USE_TEST_B 0
+#define USE_TEST_C 0
+
+#if USE_TEST_A
+  uint8_t* m0 = (uint8_t*)malloc(nbytes);
+  memcpy(m0, buffer, nbytes);
+  if (rxs_sender_send(&sender, m0, nbytes) < 0) {
+    printf("Error: cannot send rtp packet.\n");
+  }  
+
+  uint8_t* m1 = (uint8_t*)malloc(nbytes);
+  memcpy(m1, buffer, nbytes);
+  if (rxs_sender_send(&sender, m1, nbytes) < 0) {
+    printf("Error: cannot send rtp packet.\n");
+  }  
+
+  uint8_t* m2 = (uint8_t*)malloc(nbytes);
+  memcpy(m2, buffer, nbytes);
+  if (rxs_sender_send(&sender, m2, nbytes) < 0) {
+    printf("Error: cannot send rtp packet.\n");
+  }  
+#endif
+
+#if USE_TEST_B
+
+  uint8_t* m0 = (uint8_t*)malloc(5);
+  memcpy(m0, buffer, 5);
+  if (rxs_sender_send(&sender, m0, 5) < 0) {
+    printf("Error: cannot send rtp packet.\n");
+  }  
+
+  uint8_t* m1 = (uint8_t*)malloc(5);
+  memcpy(m1, buffer, 5);
+  if (rxs_sender_send(&sender, m1, 5) < 0) {
+    printf("Error: cannot send rtp packet.\n");
+  }  
+
+  uint8_t* m2 = (uint8_t*)malloc(5);
+  memcpy(m2, buffer, 5);
+  if (rxs_sender_send(&sender, m2, 5) < 0) {
+    printf("Error: cannot send rtp packet.\n");
+  }  
+#endif
+
+#if USE_TEST_C
+
   if (rxs_sender_send(&sender, buffer, nbytes) < 0) {
     printf("Error: cannot send rtp packet.\n");
   }  

@@ -52,7 +52,7 @@ extern "C" {
 */
 
 #define USE_JITTER 0
-#define USE_RECONSTRUCT 1      
+#define USE_RECONSTRUCT 0      
 #define USE_SIGNALING 0
 
 #if USE_JITTER && USE_RECONSTRUCT
@@ -375,8 +375,8 @@ static int init_player() {
   //if (rxs_control_sender_init(&control_sender, "192.168.0.190", RXS_CONTROL_PORT) < 0) { return -5; } 
   //if (rxs_control_sender_init(&control_sender, "192.168.0.230", RXS_CONTROL_PORT) < 0) { return -5; } 
   //if (rxs_control_sender_init(&control_sender, "192.168.0.194", RXS_CONTROL_PORT) < 0) { return -5; } 
-  //if (rxs_control_sender_init(&control_sender, "127.0.0.1", RXS_CONTROL_PORT) < 0) { return -5; } 
-  if (rxs_control_sender_init(&control_sender, "76.123.235.77", RXS_CONTROL_PORT) < 0) { return -5; } 
+  if (rxs_control_sender_init(&control_sender, "127.0.0.1", RXS_CONTROL_PORT) < 0) { return -5; } 
+  //if (rxs_control_sender_init(&control_sender, "76.123.235.77", RXS_CONTROL_PORT) < 0) { return -5; } 
   //if (rxs_control_sender_init(&control_sender, "76.123.235.77", RXS_CONTROL_PORT) < 0) { return -5; } 
 
   if (rxs_reconstruct_init(&recon) < 0) { return -6; } 

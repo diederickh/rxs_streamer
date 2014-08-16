@@ -5,7 +5,8 @@ if [ ! -d build.release ] ; then
 fi
 
 cd build.release
-cmake -DCMAKE_BUILD_TYPE=Release ../ 
+#cmake -DCMAKE_BUILD_TYPE=Release ../ 
+cmake -DCMAKE_BUILD_TYPE=Debug ../ 
 cmake --build . --target install
 
 if [ "$(uname)" == "Darwin" ] ; then 
@@ -15,11 +16,11 @@ else
 fi
 
 #./test_vpx
-./test_glfw_player
+#./test_glfw_player
 #./test_packets
 #./test_jitter
 #./test_control
-#./test_webcam_streamer
+./test_webcam_streamer
 #./test_stun
 #./test_fec
 #./test_nanomsg_client
