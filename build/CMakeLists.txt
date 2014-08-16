@@ -34,6 +34,13 @@ set(rxs_streamer_sources
   ${sd}/rxs_streamer/rxs_signaling.c
 )
 
+set(streamer_sources
+  ${sd}/streamer/Buffer.cpp
+  ${sd}/streamer/Loop.cpp
+  ${sd}/streamer/Socket.cpp
+  ${sd}/streamer/SocketUDP.cpp
+)
+
 if(UNIX AND NOT APPLE)
   list(APPEND app_sources ${extern_source_dir}/GLXW/glxw.c)
   message(STATUS "Adding glxw.c for GL-function loading.")
@@ -107,15 +114,17 @@ endif()
 add_library(rxs_streamer ${rxs_streamer_sources})
 install(TARGETS rxs_streamer ARCHIVE DESTINATION lib)
 
+add_library(streamer ${streamer_sources})
+
 # test vpx sender
 # add_executable(test_vpx ${sd}/examples/test_vpx.c ${app_sources})
 # target_link_libraries(test_vpx rxs_streamer ${app_libs})
 # install(TARGETS test_vpx DESTINATION bin)
 
 # test glfw player
-add_executable(test_glfw_player ${sd}/examples/test_glfw_player.cpp ${app_sources})
-target_link_libraries(test_glfw_player rxs_streamer ${app_libs})
-install(TARGETS test_glfw_player DESTINATION bin)
+# add_executable(test_glfw_player ${sd}/examples/test_glfw_player.cpp ${app_sources})
+# target_link_libraries(test_glfw_player rxs_streamer ${app_libs})
+# install(TARGETS test_glfw_player DESTINATION bin)
 
 # test packets
 # add_executable(test_packets ${sd}/examples/test_packets.c ${app_sources})
@@ -133,9 +142,9 @@ install(TARGETS test_glfw_player DESTINATION bin)
 # install(TARGETS test_control DESTINATION bin)
 
 # test webcam streaming
-add_executable(test_webcam_streamer ${sd}/examples/test_webcam_streamer.cpp ${app_sources})
-target_link_libraries(test_webcam_streamer rxs_streamer ${app_libs})
-install(TARGETS test_webcam_streamer DESTINATION bin)
+# add_executable(test_webcam_streamer ${sd}/examples/test_webcam_streamer.cpp ${app_sources})
+# target_link_libraries(test_webcam_streamer rxs_streamer ${app_libs})
+# install(TARGETS test_webcam_streamer DESTINATION bin)
 
 # test stun 
 # add_executable(test_stun ${sd}/examples/test_stun.c ${app_sources})
@@ -148,9 +157,15 @@ install(TARGETS test_webcam_streamer DESTINATION bin)
 # install(TARGETS test_fec DESTINATION bin)
 
 # test signaling using redis
-add_executable(test_signal_redis ${sd}/examples/test_signal_redis.c ${app_sources})
-target_link_libraries(test_signal_redis rxs_streamer ${app_libs})
-install(TARGETS test_signal_redis DESTINATION bin)
+# add_executable(test_signal_redis ${sd}/examples/test_signal_redis.c ${app_sources})
+# target_link_libraries(test_signal_redis rxs_streamer ${app_libs})
+# install(TARGETS test_signal_redis DESTINATION bin)
+
+# test streamer c++ lib
+set(test streamer)
+add_executable(test_${test} ${sd}/examples/test_${test}.cpp ${app_sources})
+target_link_libraries(test_${test} ${app_libs} streamer)
+install(TARGETS test_${test} DESTINATION bin)
 
 
 
