@@ -39,6 +39,7 @@ set(streamer_sources
   ${sd}/streamer/Loop.cpp
   ${sd}/streamer/Socket.cpp
   ${sd}/streamer/SocketUDP.cpp
+  ${sd}/streamer/Sender.cpp
 )
 
 if(UNIX AND NOT APPLE)
@@ -163,6 +164,12 @@ add_library(streamer ${streamer_sources})
 
 # test streamer c++ lib
 set(test streamer)
+add_executable(test_${test} ${sd}/examples/test_${test}.cpp ${app_sources})
+target_link_libraries(test_${test} ${app_libs} streamer)
+install(TARGETS test_${test} DESTINATION bin)
+
+# test streamer c++ lib: SENDER
+set(test sender)
 add_executable(test_${test} ${sd}/examples/test_${test}.cpp ${app_sources})
 target_link_libraries(test_${test} ${app_libs} streamer)
 install(TARGETS test_${test} DESTINATION bin)

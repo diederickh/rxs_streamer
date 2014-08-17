@@ -1,7 +1,9 @@
 #include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <sys/uio.h>
 #include <streamer/Loop.h>
+
 
 /* ------------------------------------------------------------- */
 
@@ -15,12 +17,29 @@ WriteRequest::~WriteRequest() {
 }
 
 void WriteRequest::reset() {
-  type = WRITE_REQ_NONE;
   data = NULL;
   is_free = true;
   nbytes = 0;
-  sender = NULL;
-  on_written = NULL;
+  socket = NULL;
+  on_write = NULL;
+  user = NULL;
+}
+
+/* ------------------------------------------------------------- */
+
+ReadRequest::ReadRequest() {
+  is_free = true;
+}
+
+ReadRequest::~ReadRequest() {
+  is_free = false;
+}
+
+void ReadRequest::reset() {
+  printf("@todo - at this point we don't need to reset the read request! must be implemented when e.g. a socket disconnects!\n");
+  is_free = true;
+  socket = NULL;
+  on_read = NULL;
   user = NULL;
 }
 
@@ -30,7 +49,6 @@ Loop::Loop()
   :user(NULL)
 {
   kq = kqueue();
-  printf("Created qeuue: %d\n", kq);
 }
 
 Loop::~Loop() {
@@ -46,9 +64,14 @@ int Loop::notifyRead(Socket* s) {
 
   if (NULL == s) { return -1; } 
 
+  /* Get a read request. */
+  ReadRequest* rr = getFreeReadRequest();
+  rr->socket = s;
+  rr->on_read = s->on_read;
+
   /* event monitor list */
   struct kevent mev;
-  EV_SET(&mev, s->getSocketDescriptor(), EVFILT_READ, EV_ADD | EV_ENABLE, 0, 0, s);
+  EV_SET(&mev, s->getSocketDescriptor(), EVFILT_READ, EV_ADD | EV_ENABLE, 0, 0, rr);
   read_list.push_back(mev);
 
   return 0;
@@ -63,7 +86,7 @@ int Loop::notifyWrite(Socket* s) {
 void Loop::update() {
 
   int nev, i;
-  struct timespec timeout = { 1, 0 } ;
+  struct timespec timeout = { 0, 0 } ;
 
   /* combine our read and write list. */
   monitor_list.clear();
@@ -71,7 +94,8 @@ void Loop::update() {
   std::copy(read_list.begin(), read_list.end(), std::back_inserter(monitor_list));
   std::copy(write_list.begin(), write_list.end(), std::back_inserter(monitor_list));
   std::copy(monitor_list.begin(), monitor_list.end(), std::back_inserter(trigger_list));
-
+  
+  /* check which events we get */
   nev = kevent(kq, &monitor_list[0], monitor_list.size(), &trigger_list[0], trigger_list.size(), &timeout);
   if (-1 == nev) {
     printf("Error: kevent returned -1.\n");
@@ -83,6 +107,7 @@ void Loop::update() {
     return;
   }
 
+  /* process all events */
   for (i = 0; i < nev; ++i) {
     struct kevent& kev = trigger_list[i];
       
@@ -95,40 +120,106 @@ void Loop::update() {
     else {
 
       /* read directly into the buffer of the socket. */
-      /* @todo make sure we don't read outside the buffer or overflow the wdx */
       if (kev.filter == EVFILT_READ) {
-        printf("Read event! %p\n", kev.udata);
-
-        Socket* socket = static_cast<Socket*>(kev.udata);
-        int nread = read(kev.ident, socket->in_buffer + socket->in_dx, SOCKET_BUFFER_SIZE - socket->in_dx);
-        socket->in_dx += nread;
-
-        if (socket->on_read) {
-          socket->on_read(socket);
-        }
+        read(kev);
       }
       else if (kev.filter == EVFILT_WRITE) {
-        WriteRequest* wr = static_cast<WriteRequest*>(kev.udata);
-        if (wr->type == WRITE_REQ_UDP_SENDTO) {
-          /* @todo - check result of sendto() */
-          sendto(kev.ident, wr->data, wr->nbytes, 0, (struct sockaddr*)&wr->addr, sizeof(struct sockaddr));
-
-          if (wr->on_written) {
-            wr->on_written(wr);
-          }
-        }
-
-        /* all write requests are EV_ONESHOT, so we need to remote them here! */
-        for (std::vector<struct kevent>::iterator it = write_list.begin(); it != write_list.end(); ++it) {
-          struct kevent& wk = *it;
-          if (wk.ident == kev.ident) {
-            write_list.erase(it);
-            break;
-          }
-        }
+        send(kev);
       }
     }
   }
+}
+
+ssize_t Loop::send(struct kevent& kev) {
+  
+  /* get the WriteRequest */
+  WriteRequest* req = static_cast<WriteRequest*>(kev.udata);
+  if (NULL == req) {
+    printf("Error: cannot find the write request for the send() call.\n");
+    exit(1);
+  }
+
+  if (req->socket->type == SOCKET_TYPE_UDP) {
+
+    sendto(kev.ident, req->data, req->nbytes, 0, (struct sockaddr*)&req->addr, sizeof(struct sockaddr));
+
+    if (NULL != req->on_write) {
+      req->on_write(req);
+    }
+  }
+  else {
+    printf("Error: unhandled socket type in Loop::send().\n");
+    exit(1);
+  }
+
+  /* all write requests are EV_ONESHOT, so we need to remote them here! */
+  for (std::vector<struct kevent>::iterator it = write_list.begin(); it != write_list.end(); ++it) {
+    struct kevent& wk = *it;
+    if (wk.ident == kev.ident) {
+      write_list.erase(it);
+      break;
+    }
+  }
+
+  return 0;
+}
+
+ssize_t Loop::read(struct kevent& kev) {
+
+  /* find the read request for the ident. */
+  ReadRequest* req = static_cast<ReadRequest*>(kev.udata);;
+  if (NULL == req) {
+    printf("Error: cannot find a read request for this read event.\n");
+    exit(1);
+  }
+  
+  if (NULL == req->socket) {
+    printf("Error: the socket pointer of the ReadRequest is NULL; shouldn't happen. We're probably still have a read entry in the read event list but the user reset the read request.\n");
+    return -2;
+  }
+
+  if (req->socket->type == SOCKET_TYPE_UDP) {
+    return recvmsg(req);
+  }
+
+  printf("Error: unhandled socket type in Loop::read().\n");
+  exit(1);
+}
+
+ssize_t Loop::recvmsg(ReadRequest* req) {
+
+  ssize_t nread = 0;
+  struct msghdr hdr;
+  struct iovec vec;
+
+  vec.iov_base = req->socket->in_buffer + req->socket->in_dx;
+  vec.iov_len = (req->socket->in_capacity - req->socket->in_dx);
+
+  hdr.msg_name = (void*)&req->addr;
+  hdr.msg_namelen = sizeof(req->addr);
+  hdr.msg_iov = &vec;
+  hdr.msg_iovlen = 1;
+
+  nread = ::recvmsg(req->socket->getSocketDescriptor(), &hdr, 0);
+  
+  if (-1 == nread) {
+    printf("Error: unhandled UDP read error.\n");
+    exit(1);
+  }
+
+  req->socket->in_dx += nread;
+
+  if (hdr.msg_flags & MSG_TRUNC) {
+    if (false == req->socket->growInputBuffer()) {
+      printf("Error: cannot grow the input buffer.\n");
+      exit(1);
+    }
+    printf("Error: only received part of the data that is available on UDP socket. @todo - handle this!\n");
+  }
+
+  req->socket->on_read(req);
+
+  return nread;
 }
 
 WriteRequest* Loop::getFreeWriteRequest() {
@@ -137,7 +228,6 @@ WriteRequest* Loop::getFreeWriteRequest() {
   for (size_t i = 0; i < write_requests.size(); ++i) {
     WriteRequest* wr = write_requests[i];
     if (true == wr->is_free) {
-      printf("Reusing write request.\n");
       wr->is_free = false;
       return wr;
     }
@@ -155,15 +245,44 @@ WriteRequest* Loop::getFreeWriteRequest() {
 
   /* probably too many write requests in use, log a warning */
   if (100 < write_requests.size()) {
-    printf("Warning: we've created %lu or write requests. Looks like their not set free. You should call 'reset()' in your write callback.\n", write_requests.size());
+    printf("Warning: we've created %lu write requests. Looks like their not set free. You should call 'reset()' in your write callback.\n", write_requests.size());
   }
 
   return wr;
 }
 
+ReadRequest* Loop::getFreeReadRequest() {
+
+  /* check if there is a free read request */
+  for (size_t i = 0; i < read_requests.size(); ++i) {
+   ReadRequest* rr = read_requests[i];
+    if (true == rr->is_free) {
+      rr->is_free = false;
+      return rr;
+    }
+  }
+
+  /* not found, allocate a new one. */
+  ReadRequest* rr = new ReadRequest();
+  if (NULL == rr) {
+    printf("Error: cannot allocate a new ReadRequest.\n");
+    ::exit(1);
+  }
+
+  rr->is_free = false;
+  read_requests.push_back(rr);
+
+  /* probably too many write requests in use, log a warning */
+  if (100 < read_requests.size()) {
+    printf("Warning: we've created %lu read requests. Looks like their not set free. You should call 'reset()' in your read callback.\n", read_requests.size());
+  }
+
+  return rr;
+}
+
 int Loop::sendTo(Socket* sender, struct sockaddr_in addr, 
                  const uint8_t* data, uint32_t nbytes, 
-                 loop_on_written onwritten, void* udata) 
+                 socket_on_write onwrite, void* udata) 
 {
 
   if (NULL == data) { return -2; } 
@@ -179,10 +298,9 @@ int Loop::sendTo(Socket* sender, struct sockaddr_in addr,
   wr->data = data; 
   wr->nbytes = nbytes;
   wr->addr = addr;
-  wr->type = WRITE_REQ_UDP_SENDTO;
-  wr->sender = sender;
+  wr->socket = sender;
   wr->user = udata;
-  wr->on_written = onwritten;
+  wr->on_write = onwrite;
 
   /* create an monitor event */
   struct kevent mev;

@@ -6,11 +6,12 @@
 #include <arpa/inet.h>
 #include <streamer/SocketUDP.h>
 
-SocketUDP::SocketUDP(Loop* loop) 
+SocketUDP::SocketUDP(Loop* loop, size_t buffersize) 
   :sock(-1)
-  ,Socket(loop)
+  ,Socket(loop, buffersize)
   ,port(0)
 {
+  type = SOCKET_TYPE_UDP;
 }
 
 SocketUDP::~SocketUDP() {
@@ -59,11 +60,11 @@ int SocketUDP::bind(std::string host, uint16_t p) {
   return 0;
 }
 
-int SocketUDP::sendTo(std::string tip, uint16_t tport, const uint8_t* data, uint32_t nbytes, loop_on_written onwritten, void* udata) {
+int SocketUDP::sendTo(std::string tip, uint16_t tport, const uint8_t* data, uint32_t nbytes, socket_on_write onwrite, void* udata) {
   if (-1 == sock) { return -1; } 
   struct sockaddr_in addr;
   addr.sin_family = AF_INET;
   addr.sin_addr.s_addr = inet_addr(tip.c_str());
   addr.sin_port = htons(tport);
-  return loop->sendTo(this, addr, data, nbytes, onwritten, udata);
+  return loop->sendTo(this, addr, data, nbytes, onwrite, udata);
 }

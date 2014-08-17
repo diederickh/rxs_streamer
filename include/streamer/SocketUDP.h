@@ -10,11 +10,11 @@
 class SocketUDP : public Socket {
 
  public:
-  SocketUDP(Loop* loop);
+  SocketUDP(Loop* loop, size_t buffersize = 8192);
   ~SocketUDP();
   int bind(std::string ip, uint16_t port);
   int getSocketDescriptor();
-  int sendTo(std::string ip, uint16_t port, const uint8_t* data, uint32_t nbytes, loop_on_written onwritten, void* udata);
+  int sendTo(std::string ip, uint16_t port, const uint8_t* data, uint32_t nbytes, socket_on_write onwritten, void* udata);
 
  public:
   struct sockaddr_in addr;

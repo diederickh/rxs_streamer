@@ -28,4 +28,5 @@ fi
 #./test_signal_server
 #./test_signal_client
 #./test_signal_redis
-./test_streamer
+#./test_streamer
+./test_sender
