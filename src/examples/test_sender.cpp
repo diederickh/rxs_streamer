@@ -25,8 +25,17 @@ int main() {
     /* Get a free chunk, add some test data to it and give it back to the sender so it's send. */
     Chunk* c = sender.getFreeChunk();
     if (NULL != c) {
+
+      /* Make sure the buffer is reset before we write new data into it. */
+      c->clear();
+
+      /* Copy data */
       std::copy(test_data.begin(), test_data.end(), std::back_inserter(c->data));
+
+      /* Give our chunk to the sender which will make sure it's delivere to the remote ip:port */
       sender.sendChunk(c);
+
+      printf("Size of chunk: %lu\n", c->size());
     }
 
     usleep(100000);

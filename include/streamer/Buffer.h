@@ -13,6 +13,7 @@ class Chunk {
   void copy(uint8_t* bytes, uint32_t nbytes);             /* Copy the given bytes into the internal buffer */
   size_t capacity();                                      /* Returns how many bytes you can write into this chunk. */
   size_t size();                                          /* Returns the number of bytes written into this chunk */
+  void clear();                                           /* Resets the buffer; should be called when you want to reset the data */
   uint8_t* ptr();                                         /* Returns pointer to first entry */
  public:
   std::vector<uint8_t> data;                              /* The buffer into you write your data. */
@@ -32,6 +33,10 @@ inline size_t  Chunk::size() {
 
 inline uint8_t* Chunk::ptr() {
   return &data[0];
+}
+
+inline void Chunk::clear() {
+  data.clear();
 }
 
 /* --------------------------------------------------------------- */
