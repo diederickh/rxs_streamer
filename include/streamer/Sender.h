@@ -25,15 +25,15 @@ namespace rxs {
   class Sender {
 
   public: 
-    Sender(std::string lip, uint16_t lport, std::string rip, uint16_t rport);       /* lip = local ip, lport = local port, rip = remote IP, rport = remote port to which we send data. */
+    Sender(uint32_t chunksize, std::string lip, uint16_t lport, std::string rip, uint16_t rport);       /* lip = local ip, lport = local port, rip = remote IP, rport = remote port to which we send data. */
     ~Sender();
     int init();
     void shutdown();
-    void update();
     void lock();
     void unlock();
     Chunk* getFreeChunk();
     void sendChunk(Chunk* c);
+    void freeChunk(Chunk* c);                                                      /* make the chunk available again (e.g. when you didn't need it) */
 
   public:
     Buffer buffer;                                                                  /* our output buffer, contains the chunks we can send. */

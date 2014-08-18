@@ -1,6 +1,7 @@
 #include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <errno.h>
 #include <sys/uio.h>
 #include <streamer/Loop.h>
 
@@ -104,14 +105,13 @@ namespace rxs {
 
   int Loop::notifyWrite(Socket* s) {
     if (NULL == s) { return -1; } 
-
     return 0;
   }
 
   void Loop::update() {
 
     int nev, i;
-    struct timespec timeout = { 0, 0 } ;
+    struct timespec timeout = { 5, 0 } ;
 
     /* combine our read and write list. */
     monitor_list.clear();
@@ -165,8 +165,16 @@ namespace rxs {
     }
 
     if (req->socket->type == SOCKET_TYPE_UDP) {
+      
+      /* send the data */
+      ssize_t nsend = sendto(kev.ident, req->data, req->nbytes, 
+                             0, (struct sockaddr*)&req->addr, 
+                             sizeof(struct sockaddr));
 
-      sendto(kev.ident, req->data, req->nbytes, 0, (struct sockaddr*)&req->addr, sizeof(struct sockaddr));
+      /* did we get an error? */
+      if (-1 == nsend) {
+        printf("Error: cannot send the data: %s\n", strerror(errno));
+      }
 
       if (NULL != req->on_write) {
         req->on_write(req);
@@ -231,7 +239,7 @@ namespace rxs {
       printf("Error: unhandled UDP read error.\n");
       exit(1);
     }
-
+    
     req->socket->in_dx += nread;
 
     if (hdr.msg_flags & MSG_TRUNC) {

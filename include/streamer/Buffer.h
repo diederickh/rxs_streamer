@@ -12,7 +12,8 @@ namespace rxs {
   public:
     Chunk();
     ~Chunk();
-    void copy(uint8_t* bytes, uint32_t nbytes);             /* Copy the given bytes into the internal buffer */
+    void append(uint8_t* bytes, uint32_t nbytes);           /* Copy the given bytes into the internal buffer */
+    void replace(uint8_t* bytes, uint32_t nbytes);          /* Replace current data with the given bytes. */
     size_t capacity();                                      /* Returns how many bytes you can write into this chunk. */
     size_t size();                                          /* Returns the number of bytes written into this chunk */
     void clear();                                           /* Resets the buffer; should be called when you want to reset the data */

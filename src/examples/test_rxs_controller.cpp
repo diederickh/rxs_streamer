@@ -20,9 +20,6 @@ int main() {
   }
 
   controller.addRemote("127.0.0.1", 7000);
-  controller.addRemote("127.0.0.1", 7001);
-  controller.addRemote("127.0.0.1", 7002);
-  controller.addRemote("127.0.0.1", 7003);
 
   while(must_run) {
     controller.update();

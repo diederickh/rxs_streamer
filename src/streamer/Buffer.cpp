@@ -16,7 +16,12 @@ namespace rxs {
     is_free = false;
   }
 
-  void Chunk::copy(uint8_t* bytes, uint32_t nbytes) {
+  void Chunk::append(uint8_t* bytes, uint32_t nbytes) {
+    std::copy(bytes, bytes + nbytes, std::back_inserter(data));
+  }
+
+  void Chunk::replace(uint8_t* bytes, uint32_t nbytes) {
+    data.clear();
     std::copy(bytes, bytes + nbytes, std::back_inserter(data));
   }
 
@@ -24,7 +29,7 @@ namespace rxs {
 
   Buffer::Buffer(uint32_t nsize, int nchunks) {
 
-    printf("Createing %d chunks for our buffer with a size of %u per chunk.\n", nchunks, nsize);
+    printf("Creating %d chunks for our buffer with a size of %u per chunk.\n", nchunks, nsize);
 
     for (int i = 0; i < nchunks; ++i) {
 

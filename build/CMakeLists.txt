@@ -24,30 +24,13 @@ include_directories(
   ${webrtc_id}
 )
 
-set(rxs_streamer_sources
-  ${sd}/rxs_streamer/rxs_generator.c
-  ${sd}/rxs_streamer/rxs_encoder.c
-  ${sd}/rxs_streamer/rxs_decoder.c
-  ${sd}/rxs_streamer/rxs_packetizer.c
-  ${sd}/rxs_streamer/rxs_depacketizer.c
-  ${sd}/rxs_streamer/rxs_sender.c
-  ${sd}/rxs_streamer/rxs_receiver.c
-  ${sd}/rxs_streamer/rxs_ivf.c
-  ${sd}/rxs_streamer/rxs_packets.c
-  ${sd}/rxs_streamer/rxs_jitter.c
-  ${sd}/rxs_streamer/rxs_control.c
-  ${sd}/rxs_streamer/rxs_reconstruct.c
-  ${sd}/rxs_streamer/rxs_stun.c
-  ${sd}/rxs_streamer/rxs_stun_io.c
-  ${sd}/rxs_streamer/rxs_signaling.c
-)
-
 set(streamer_sources
   ${sd}/streamer/Buffer.cpp
   ${sd}/streamer/Loop.cpp
   ${sd}/streamer/Socket.cpp
   ${sd}/streamer/SocketUDP.cpp
   ${sd}/streamer/Sender.cpp
+  ${sd}/streamer/Receiver.cpp
   ${sd}/streamer/Controller.cpp
 
   # Compile the webrtc source in the streamer
@@ -75,14 +58,13 @@ if(APPLE)
   find_library(fr_audio_toolbox AudioToolbox)
 
   set(app_libs
-    ${extern_lib_dir}/libvpx.a
+#    ${extern_lib_dir}/libvpx.a
     ${extern_lib_dir}/libuv.a
     ${extern_lib_dir}/libpng.a
     ${extern_lib_dir}/libz.a
     ${extern_lib_dir}/libglfw3.a
     ${extern_lib_dir}/libvideocapture.a
     ${extern_lib_dir}/libyuv.a
-    ${extern_lib_dir}/libhiredis.a     # for signaling
     ${fr_corefoundation}               # uv
     ${fr_cocoa}                        # uv
     ${fr_iokit}                        # uv
@@ -93,6 +75,8 @@ if(APPLE)
 
     # webrtc 
     ${webrtc_libs}
+    ${webrtc_extern_ld}/libvideogenerator.a    # for video stream test
+    ${webrtc_extern_ld}/libvpx.a               # video encoder
     )
 
 elseif(UNIX)
@@ -125,10 +109,8 @@ elseif(UNIX)
     )
 endif()
 
-# rxs_streamer library
-add_library(rxs_streamer ${rxs_streamer_sources})
-install(TARGETS rxs_streamer ARCHIVE DESTINATION lib)
 add_library(streamer ${streamer_sources})
+install(TARGETS streamer ARCHIVE DESTINATION lib)
 
 macro(create_test name)
   add_executable(test_rxs_${name} ${sd}/examples/test_rxs_${name}.cpp ${app_sources})
@@ -140,7 +122,7 @@ create_test(receiver)            # receive the encoded video
 create_test(controller)          # proxy input to multiple outputs
 create_test(sender)              # send video to the controller
 create_test(streamer)            # general test for the api
-
+create_test(video_sender)
 
 
 

@@ -10,8 +10,8 @@ namespace rxs {
   static void* sender_thread(void* user);
   /* -------------------------------------------------------------- */
 
-  Sender::Sender(std::string lip, uint16_t lport, std::string rip, uint16_t rport) 
-    :buffer(8192, 25)
+  Sender::Sender(uint32_t chunksize, std::string lip, uint16_t lport, std::string rip, uint16_t rport) 
+    :buffer(chunksize, 25)
     ,sock(&loop)
     ,lip(lip)
     ,lport(lport)
@@ -83,6 +83,18 @@ namespace rxs {
     unlock();
   }
 
+  void Sender::freeChunk(Chunk* c) {
+
+    if (NULL == c) {
+      printf("Error: invalid chunk given to Sender::freeChunk.\n");
+      return;
+    }
+
+    lock();
+      buffer.addFreeChunk(c);
+    unlock();
+  }
+
   void Sender::shutdown() {
     if (false == is_running) {
       printf("Error: trying to shutdown the sender but it's not running.\n");
@@ -100,9 +112,6 @@ namespace rxs {
     /* @todo - destroy mutex/cond */
     printf("Verbose: shutting down thread..\n");
     pthread_join(thread, NULL);
-  }
-
-  void Sender::update() {
   }
 
   /* -------------------------------------------------------------- */
@@ -133,7 +142,10 @@ namespace rxs {
 
   static void* sender_thread(void* user) {
 
+    printf("Sender thread running.\n");
+
     /* get the sender. */
+    int r = 0;
     Sender* sender = static_cast<Sender*>(user);
     if (NULL == sender) {
       printf("Error: sender thread did not get the Sender* as user data; not supposed to happen.\n");
@@ -168,12 +180,19 @@ namespace rxs {
       for (size_t i = 0; i < work.size(); ++i) {
         Chunk* chunk = work[i];
         chunk->user = sender;
-        sender->sock.sendTo(sender->rip, sender->rport, chunk->ptr(), chunk->size(), sender_on_write, chunk);
+
+        r = sender->sock.sendTo(sender->rip, sender->rport, chunk->ptr(), chunk->size(), sender_on_write, chunk);
+        if (r != 0) {
+          printf("Error: cannot send data: %d\n", r);
+        }
+
         sender->loop.update();
       }
 
       work.clear();
     }
+
+    printf("Sender thread stopped.\n");
 
     sender->is_running = false;
     return NULL;

@@ -13,7 +13,7 @@ int main() {
 
   signal(SIGINT, sig);
 
-  rxs::Sender sender("127.0.0.1", 6677, "127.0.0.1", 6688);
+  rxs::Sender sender(1024, "127.0.0.1", 6677, "127.0.0.1", 6688);
   if (0 != sender.init()) {
     exit(1);
   }
