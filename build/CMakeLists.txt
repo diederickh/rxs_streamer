@@ -1,9 +1,15 @@
 cmake_minimum_required(VERSION 2.8)
 
+include(${CMAKE_CURRENT_LIST_DIR}/../extern/webrtc/build/CMakeLists.txt)
 include(${CMAKE_CURRENT_LIST_DIR}/Triplet.cmake)
 
 set(app app)
 set(sd ${CMAKE_CURRENT_LIST_DIR}/../src/)
+set(webrtc_bd ${CMAKE_CURRENT_LIST_DIR}/../extern/webrtc/)            # base dir
+set(webrtc_extern_id ${webrtc_bd}/extern/${tri_triplet}/include)      # webrtc include files
+set(webrtc_extern_ld ${webrtc_bd}/extern/${tri_triplet}/lib)          # webrtc lib files
+set(webrtc_install_dir ${webrtc_bd}/install/${tri_triplet}/)          # webrtc lib files
+set(webrtc_id ${webrtc_bd}/include/)
 
 if(CMAKE_BUILD_TYPE STREQUAL Debug)
   set(app "${app}_debug")
@@ -14,6 +20,8 @@ include_directories(
   ${CMAKE_CURRENT_LIST_DIR}/../include
   ${extern_include_dir}
   ${CMAKE_CURRENT_LIST_DIR}/../extern/tinylib/src
+  ${webrtc_extern_id}
+  ${webrtc_id}
 )
 
 set(rxs_streamer_sources
@@ -40,6 +48,10 @@ set(streamer_sources
   ${sd}/streamer/Socket.cpp
   ${sd}/streamer/SocketUDP.cpp
   ${sd}/streamer/Sender.cpp
+  ${sd}/streamer/Controller.cpp
+
+  # Compile the webrtc source in the streamer
+  ${webrtc_sources}
 )
 
 if(UNIX AND NOT APPLE)
@@ -71,14 +83,16 @@ if(APPLE)
     ${extern_lib_dir}/libvideocapture.a
     ${extern_lib_dir}/libyuv.a
     ${extern_lib_dir}/libhiredis.a     # for signaling
-    ${fr_corefoundation}  # uv
-    ${fr_cocoa}           # uv
-    ${fr_iokit}           # uv
-    ${fr_opengl}          # glfw
-    ${fr_corevideo}       # glfw
-    ${fr_avfoundation}    # videocapture
-    ${fr_coremedia}       # videocapture
+    ${fr_corefoundation}               # uv
+    ${fr_cocoa}                        # uv
+    ${fr_iokit}                        # uv
+    ${fr_opengl}                       # glfw
+    ${fr_corevideo}                    # glfw
+    ${fr_avfoundation}                 # videocapture
+    ${fr_coremedia}                    # videocapture
 
+    # webrtc 
+    ${webrtc_libs}
     )
 
 elseif(UNIX)
@@ -162,7 +176,13 @@ add_library(streamer ${streamer_sources})
 # target_link_libraries(test_signal_redis rxs_streamer ${app_libs})
 # install(TARGETS test_signal_redis DESTINATION bin)
 
-# test streamer c++ lib
+macro(create_test name)
+  add_executable(test_rxs_${name} ${sd}/examples/test_rxs_${name}.cpp ${app_sources})
+  target_link_libraries(test_rxs_${name} ${app_libs} streamer)
+  install(TARGETS test_rxs_${name} DESTINATION bin)
+endmacro()
+
+# test streamer c++ lib: GENERAL
 set(test streamer)
 add_executable(test_${test} ${sd}/examples/test_${test}.cpp ${app_sources})
 target_link_libraries(test_${test} ${app_libs} streamer)
@@ -173,6 +193,20 @@ set(test sender)
 add_executable(test_${test} ${sd}/examples/test_${test}.cpp ${app_sources})
 target_link_libraries(test_${test} ${app_libs} streamer)
 install(TARGETS test_${test} DESTINATION bin)
+
+# test streamer c++ lib: CONTROLLER
+set(test controller)
+add_executable(test_${test} ${sd}/examples/test_${test}.cpp ${app_sources})
+target_link_libraries(test_${test} ${app_libs} streamer)
+install(TARGETS test_${test} DESTINATION bin)
+
+# test streamer c++ lib: RECEIVER
+create_test(receiver)
+#set(test receiver)
+#add_executable(test_rxs_${test} ${sd}/examples/test_rxs_${test}.cpp ${app_sources})
+#target_link_libraries(test_rxs_${test} ${app_libs} streamer)
+#install(TARGETS test_rxs_${test} DESTINATION bin)
+
 
 
 

@@ -20,17 +20,17 @@
 #include <streamer/Socket.h>
 #include <streamer/SocketUDP.h>
 
-static void on_read(ReadRequest* s);
-static void on_written(WriteRequest* wr);
+static void on_read(rxs::ReadRequest* s);
+static void on_written(rxs::WriteRequest* wr);
 
 int main() {
 
   printf("\n\ntest_streamer\n\n");
 
   /* Create the server and client sockets. */
-  Loop loop;
-  SocketUDP server(&loop, 128);
-  SocketUDP client(&loop);
+  rxs::Loop loop;
+  rxs::SocketUDP server(&loop, 128);
+  rxs::SocketUDP client(&loop);
 
   /* Bind the sockets. */
   server.bind("127.0.0.1", 6667);
@@ -54,8 +54,8 @@ int main() {
 }
 
 
-static void on_read(ReadRequest* rr) {
-  Socket* s = rr->socket;
+static void on_read(rxs::ReadRequest* rr) {
+  rxs::Socket* s = rr->socket;
   printf("Read some bytes, current dx: %u.\n", s->in_dx);
   for (int i = 0; i < s->in_dx; ++i) {
     printf("%c", s->in_buffer[i]);
@@ -65,7 +65,7 @@ static void on_read(ReadRequest* rr) {
  /* note: we don't need to reset the ReadRequest here, because that would mean we won't get any reads anymore. */
 }
 
-static void on_written(WriteRequest* wr) {
+static void on_written(rxs::WriteRequest* wr) {
   printf("Ready with writing the data.\n");
   wr->reset();
 }

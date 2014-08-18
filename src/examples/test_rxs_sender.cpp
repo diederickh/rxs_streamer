@@ -13,7 +13,7 @@ int main() {
 
   signal(SIGINT, sig);
 
-  Sender sender("127.0.0.1", 6677, "127.0.0.1", 6688);
+  rxs::Sender sender("127.0.0.1", 6677, "127.0.0.1", 6688);
   if (0 != sender.init()) {
     exit(1);
   }
@@ -23,7 +23,7 @@ int main() {
   while(must_run) {
 
     /* Get a free chunk, add some test data to it and give it back to the sender so it's send. */
-    Chunk* c = sender.getFreeChunk();
+    rxs::Chunk* c = sender.getFreeChunk();
     if (NULL != c) {
 
       /* Make sure the buffer is reset before we write new data into it. */
@@ -47,6 +47,6 @@ int main() {
 }
 
 static void sig(int s) {
-  printf("Sig hanlder.\n");
+  printf("Sig handler.\n");
   must_run = false;
 }

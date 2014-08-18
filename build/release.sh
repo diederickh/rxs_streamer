@@ -1,7 +1,26 @@
 #!/bin/sh
 
+d=${PWD}
+
 if [ ! -d build.release ] ; then 
     mkdir build.release
+fi
+
+if [ ! -d ${d}/../extern/webrtc ] ; then 
+    mkdir ${d}/../extern/webrtc
+
+    cd ${d}/../extern/webrtc
+    git clone git@github.com:roxlu/WebRTC.git .
+
+    cd build
+
+    if [ "$(uname)" == "Darwin" ] ; then 
+        ./build_mac_dependencies.sh
+    fi
+
+    ./release.sh
+
+    cd ${d}
 fi
 
 cd build.release
@@ -14,6 +33,7 @@ if [ "$(uname)" == "Darwin" ] ; then
 else
     cd ./../../install/linux-gcc-x86_64/bin/
 fi
+
 
 #./test_vpx
 #./test_glfw_player
@@ -29,4 +49,5 @@ fi
 #./test_signal_client
 #./test_signal_redis
 #./test_streamer
-./test_sender
+#./test_sender
+./test_controller
