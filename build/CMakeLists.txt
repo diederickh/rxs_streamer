@@ -128,53 +128,7 @@ endif()
 # rxs_streamer library
 add_library(rxs_streamer ${rxs_streamer_sources})
 install(TARGETS rxs_streamer ARCHIVE DESTINATION lib)
-
 add_library(streamer ${streamer_sources})
-
-# test vpx sender
-# add_executable(test_vpx ${sd}/examples/test_vpx.c ${app_sources})
-# target_link_libraries(test_vpx rxs_streamer ${app_libs})
-# install(TARGETS test_vpx DESTINATION bin)
-
-# test glfw player
-# add_executable(test_glfw_player ${sd}/examples/test_glfw_player.cpp ${app_sources})
-# target_link_libraries(test_glfw_player rxs_streamer ${app_libs})
-# install(TARGETS test_glfw_player DESTINATION bin)
-
-# test packets
-# add_executable(test_packets ${sd}/examples/test_packets.c ${app_sources})
-# target_link_libraries(test_packets rxs_streamer ${app_libs})
-# install(TARGETS test_packets DESTINATION bin)
-
-# test jitter
-# add_executable(test_jitter ${sd}/examples/test_jitter.c ${app_sources})
-# target_link_libraries(test_jitter rxs_streamer ${app_libs})
-# install(TARGETS test_jitter DESTINATION bin)
-
-# test control
-# add_executable(test_control ${sd}/examples/test_control.c ${app_sources})
-# target_link_libraries(test_control rxs_streamer ${app_libs})
-# install(TARGETS test_control DESTINATION bin)
-
-# test webcam streaming
-# add_executable(test_webcam_streamer ${sd}/examples/test_webcam_streamer.cpp ${app_sources})
-# target_link_libraries(test_webcam_streamer rxs_streamer ${app_libs})
-# install(TARGETS test_webcam_streamer DESTINATION bin)
-
-# test stun 
-# add_executable(test_stun ${sd}/examples/test_stun.c ${app_sources})
-# target_link_libraries(test_stun rxs_streamer ${app_libs})
-# install(TARGETS test_stun DESTINATION bin)
-
-# test fec
-# add_executable(test_fec ${sd}/examples/test_fec.c ${app_sources})
-# target_link_libraries(test_fec rxs_streamer ${app_libs})
-# install(TARGETS test_fec DESTINATION bin)
-
-# test signaling using redis
-# add_executable(test_signal_redis ${sd}/examples/test_signal_redis.c ${app_sources})
-# target_link_libraries(test_signal_redis rxs_streamer ${app_libs})
-# install(TARGETS test_signal_redis DESTINATION bin)
 
 macro(create_test name)
   add_executable(test_rxs_${name} ${sd}/examples/test_rxs_${name}.cpp ${app_sources})
@@ -182,30 +136,10 @@ macro(create_test name)
   install(TARGETS test_rxs_${name} DESTINATION bin)
 endmacro()
 
-# test streamer c++ lib: GENERAL
-set(test streamer)
-add_executable(test_${test} ${sd}/examples/test_${test}.cpp ${app_sources})
-target_link_libraries(test_${test} ${app_libs} streamer)
-install(TARGETS test_${test} DESTINATION bin)
-
-# test streamer c++ lib: SENDER
-set(test sender)
-add_executable(test_${test} ${sd}/examples/test_${test}.cpp ${app_sources})
-target_link_libraries(test_${test} ${app_libs} streamer)
-install(TARGETS test_${test} DESTINATION bin)
-
-# test streamer c++ lib: CONTROLLER
-set(test controller)
-add_executable(test_${test} ${sd}/examples/test_${test}.cpp ${app_sources})
-target_link_libraries(test_${test} ${app_libs} streamer)
-install(TARGETS test_${test} DESTINATION bin)
-
-# test streamer c++ lib: RECEIVER
-create_test(receiver)
-#set(test receiver)
-#add_executable(test_rxs_${test} ${sd}/examples/test_rxs_${test}.cpp ${app_sources})
-#target_link_libraries(test_rxs_${test} ${app_libs} streamer)
-#install(TARGETS test_rxs_${test} DESTINATION bin)
+create_test(receiver)            # receive the encoded video
+create_test(controller)          # proxy input to multiple outputs
+create_test(sender)              # send video to the controller
+create_test(streamer)            # general test for the api
 
 
 
