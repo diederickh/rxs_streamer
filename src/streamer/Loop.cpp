@@ -111,7 +111,7 @@ namespace rxs {
   void Loop::update() {
 
     int nev, i;
-    struct timespec timeout = { 5, 0 } ;
+    struct timespec timeout = { 0, 5000 } ;
 
     /* combine our read and write list. */
     monitor_list.clear();

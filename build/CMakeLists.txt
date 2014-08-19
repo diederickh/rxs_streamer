@@ -122,7 +122,8 @@ create_test(receiver)            # receive the encoded video
 create_test(controller)          # proxy input to multiple outputs
 create_test(sender)              # send video to the controller
 create_test(streamer)            # general test for the api
-create_test(video_sender)
+create_test(video_sender)        # encodes some test video and sends it to the controller.
+create_test(video_receiver)      # receives video from the controller and writes it to a .ivf file (optional)
 
 
 

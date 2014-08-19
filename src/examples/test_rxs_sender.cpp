@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include <signal.h>
 #include <streamer/Sender.h>
-
+#include "config.h"
 
 static void sig(int s);
 
@@ -13,7 +13,7 @@ int main() {
 
   signal(SIGINT, sig);
 
-  rxs::Sender sender(1024, "127.0.0.1", 6677, "127.0.0.1", 6688);
+  rxs::Sender sender(1024, SENDER_IP, SENDER_PORT, CONTROLLER_IP, CONTROLLER_PORT);
   if (0 != sender.init()) {
     exit(1);
   }

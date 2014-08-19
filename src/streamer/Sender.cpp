@@ -11,7 +11,7 @@ namespace rxs {
   /* -------------------------------------------------------------- */
 
   Sender::Sender(uint32_t chunksize, std::string lip, uint16_t lport, std::string rip, uint16_t rport) 
-    :buffer(chunksize, 25)
+    :buffer(chunksize, 50)
     ,sock(&loop)
     ,lip(lip)
     ,lport(lport)
@@ -116,8 +116,9 @@ namespace rxs {
 
   /* -------------------------------------------------------------- */
   static void sender_on_write(WriteRequest* req) {
-    printf("sender_on_write - making the WriteRequest free again + reset the chunk\n");
+    //    printf("sender_on_write - making the WriteRequest free again + reset the chunk\n");
 
+#if 1
     /* get the chunk so we can make it free again. */
     Chunk* chunk = static_cast<Chunk*>(req->user);
     if (NULL == chunk) {
@@ -135,6 +136,7 @@ namespace rxs {
     sender->lock();
     sender->buffer.addFreeChunk(chunk);
     sender->unlock();
+#endif
 
     /* and reset the write request. */
     req->reset();

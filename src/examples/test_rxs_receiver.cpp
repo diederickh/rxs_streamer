@@ -19,6 +19,7 @@
 #include <stdlib.h>
 #include <signal.h>
 #include <streamer/Receiver.h>
+#include "config.h"
 
 static void sig(int s);
 static void on_data(rxs::Receiver* recv, uint8_t* data, uint32_t nbytes);
@@ -31,7 +32,7 @@ int main() {
   signal(SIGINT, sig);
 
   /* Initialize the receiver. */
-  rxs::Receiver recv("127.0.0.1", 7001, "127.0.0.1", 6688);
+  rxs::Receiver recv(RECEIVER_IP, RECEIVER_PORT, CONTROLLER_IP, CONTROLLER_PORT);
   if (0 != recv.init()) {
     exit(1);
   }
@@ -60,5 +61,6 @@ static void on_data(rxs::Receiver* recv, uint8_t* data, uint32_t nbytes) {
   recv->sock.in_dx = 0;
 
   printf("Received %u bytes of data.\n", nbytes);
+  
 }
 

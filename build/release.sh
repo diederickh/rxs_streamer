@@ -38,4 +38,5 @@ fi
 #./test_rxs_sender
 #./test_rxs_controller
 #./test_rxs_receiver
-./test_rxs_video_sender
+#./test_rxs_video_sender
+./test_rxs_video_receiver

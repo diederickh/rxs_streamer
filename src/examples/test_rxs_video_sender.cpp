@@ -1,3 +1,11 @@
+/*
+  
+  test_rxs_video_sender
+  ---------------------
+
+  Uses the libvideogenerator to create some test video and sends it using RTP/VP8.
+
+ */
 #include <unistd.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -11,17 +19,14 @@
 #include <video/EncoderSettings.h>
 #include <video/EncoderVP8.h>
 #include <rtp/WriterVP8.h>
-
-#define WIDTH 320
-#define HEIGHT 240
-#define FPS 25
+#include "config.h"
 
 bool must_run = true;
 video_generator vidgen;
 video::EncoderVP8 vp8_encoder;
 video::EncoderSettings vp8_encoder_settings;
 rtp::WriterVP8 rtp_encoder;
-rxs::Sender sender(128*1024, "127.0.0.1", 6677, "127.0.0.1", 6688);
+rxs::Sender sender(128*1024, SENDER_IP, SENDER_PORT, RECEIVER_IP, RECEIVER_PORT);
 
 static void sig(int s);
 static void on_vp8_packet(video::EncoderVP8* enc, const vpx_codec_cx_pkt_t* pkt, int64_t pts);
@@ -38,16 +43,16 @@ int main() {
   }
 
   /* Initialize the fake video generator. */
-  if (video_generator_init(&vidgen, WIDTH, HEIGHT, FPS) < 0) {
+  if (video_generator_init(&vidgen, VIDEO_WIDTH, VIDEO_HEIGHT, VIDEO_FPS_DEN) < 0) {
     printf("Error: cannot init video generator.\n");
     exit(1);
   }
 
   /* Initialize the encoder. */
-  vp8_encoder_settings.width = WIDTH;
-  vp8_encoder_settings.height = HEIGHT;
-  vp8_encoder_settings.fps_num = 1;
-  vp8_encoder_settings.fps_den = FPS;
+  vp8_encoder_settings.width = VIDEO_WIDTH;
+  vp8_encoder_settings.height = VIDEO_HEIGHT;
+  vp8_encoder_settings.fps_num = VIDEO_FPS_NUM;
+  vp8_encoder_settings.fps_den = VIDEO_FPS_DEN;
   if (vp8_encoder.init(vp8_encoder_settings) < 0) {
     printf("Error: cannot init the video encoder.\n");
     exit(1);
@@ -61,7 +66,7 @@ int main() {
   uint64_t time_started = uv_hrtime();
   while (must_run) {
 
-    if (vidgen.frame % FPS == 0) {
+    if (vidgen.frame % VIDEO_FPS_DEN == 0) {
       vp8_encoder.flags = VPX_EFLAG_FORCE_KF;
     }
 
@@ -77,7 +82,6 @@ int main() {
   
   return 0;
 }
-
 
 static void on_vp8_packet(video::EncoderVP8* enc, const vpx_codec_cx_pkt_t* pkt, int64_t pts) {
   rtp_encoder.packetize(pkt);
@@ -101,7 +105,8 @@ static void on_rtp_packet(rtp::PacketVP8* pkt, void* user) {
     sender.freeChunk(c);
     return;
   }
-    
+
+  printf("Sending packet: %d, nbytes: %d\n", pkt->sequence_number, pkt->nbytes);
   c->replace(pkt->payload, pkt->nbytes);
 
   sender.sendChunk(c);
